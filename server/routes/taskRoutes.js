@@ -1,12 +1,12 @@
 import express from 'express';
 import { getTasks, createTask, assignTask, updateTaskStatus } from '../controllers/taskController.js';
-import { authenticateToken, requireRole } from '../middleware/authMiddleware.js';
+import { optionalAuth } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-router.get('/', authenticateToken, getTasks);
-router.post('/', authenticateToken, requireRole('ADMIN'), createTask);
-router.put('/:id/assign', authenticateToken, requireRole('ADMIN'), assignTask);
-router.put('/:id/status', authenticateToken, updateTaskStatus);
+router.get('/', optionalAuth, getTasks);
+router.post('/', optionalAuth, createTask);
+router.put('/:id/assign', optionalAuth, assignTask);
+router.put('/:id/status', optionalAuth, updateTaskStatus);
 
 export default router;

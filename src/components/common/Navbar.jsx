@@ -128,30 +128,35 @@ export default function Navbar({ onOpenSimulator }) {
               )}
             </div>
 
-            {/* User Profile Info & Role */}
-            {user ? (
-              <div className="flex items-center space-x-3 pl-3 border-l border-slate-800">
-                <div className="text-right hidden sm:block">
-                  <p className="text-xs font-semibold text-slate-200">{user.name}</p>
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-800 text-emerald-400 border border-slate-700">
-                    {user.role}
-                  </span>
-                </div>
+            {/* Portal Switcher & Access Badges */}
+            <div className="flex items-center space-x-2 pl-3 border-l border-slate-800">
+              <a
+                href="/collections"
+                className="hidden sm:inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/20 text-[11px] font-bold transition"
+              >
+                <span>🚚 Worker View</span>
+              </a>
+              <a
+                href="/citizen"
+                className="hidden sm:inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 text-[11px] font-bold transition"
+              >
+                <span>👤 Citizen View</span>
+              </a>
+
+              {user ? (
                 <button
                   onClick={logout}
                   title="Logout"
                   className="p-2 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition-colors"
                 >
-                  <LogOut className="w-5 h-5" />
+                  <LogOut className="w-4 h-4" />
                 </button>
-              </div>
-            ) : (
-              <div className="flex items-center space-x-2">
+              ) : (
                 <a href="/login" className="text-xs px-3 py-1.5 rounded-lg bg-slate-800 text-slate-200 hover:bg-slate-700 transition">
                   Login
                 </a>
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
         </div>

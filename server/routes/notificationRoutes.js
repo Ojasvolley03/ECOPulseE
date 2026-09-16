@@ -1,10 +1,10 @@
 import express from 'express';
 import { getNotifications, markAsRead } from '../controllers/notificationController.js';
-import { authenticateToken } from '../middleware/authMiddleware.js';
+import { optionalAuth } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-router.get('/', authenticateToken, getNotifications);
-router.put('/:id/read', authenticateToken, markAsRead);
+router.get('/', optionalAuth, getNotifications);
+router.put('/:id/read', optionalAuth, markAsRead);
 
 export default router;

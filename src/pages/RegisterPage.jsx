@@ -22,9 +22,9 @@ export default function RegisterPage() {
 
     try {
       const res = await register({ name, email, password, phone, role });
-      if (res.user.role === 'ADMIN') navigate('/waste-management');
-      else if (res.user.role === 'WORKER') navigate('/waste-management/collections');
-      else navigate('/waste-management/citizen');
+      if (res.user.role === 'ADMIN') navigate('/dashboard');
+      else if (res.user.role === 'WORKER') navigate('/collections');
+      else navigate('/citizen');
     } catch (err) {
       setError(err.message || 'Registration failed.');
     } finally {

@@ -20,9 +20,9 @@ export default function LoginPage() {
     try {
       const res = await login(email, password);
       const user = res.user;
-      if (user.role === 'ADMIN') navigate('/waste-management');
-      else if (user.role === 'WORKER') navigate('/waste-management/collections');
-      else navigate('/waste-management/citizen');
+      if (user.role === 'ADMIN') navigate('/dashboard');
+      else if (user.role === 'WORKER') navigate('/collections');
+      else navigate('/citizen');
     } catch (err) {
       setError(err.message || 'Login failed.');
     } finally {
@@ -39,9 +39,9 @@ export default function LoginPage() {
     try {
       const res = await login(demoEmail, 'password123');
       const user = res.user;
-      if (user.role === 'ADMIN') navigate('/waste-management');
-      else if (user.role === 'WORKER') navigate('/waste-management/collections');
-      else navigate('/waste-management/citizen');
+      if (user.role === 'ADMIN') navigate('/dashboard');
+      else if (user.role === 'WORKER') navigate('/collections');
+      else navigate('/citizen');
     } catch (err) {
       setError(err.message || 'Demo login failed.');
     } finally {

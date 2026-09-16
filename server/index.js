@@ -19,6 +19,7 @@ import notificationRoutes from './routes/notificationRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';
 import simulatorRoutes from './routes/simulatorRoutes.js';
+import vehicleRoutes from './routes/vehicleRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -61,6 +62,7 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/simulator', simulatorRoutes);
+app.use('/api/vehicles', vehicleRoutes);
 
 // Health Check
 app.get('/api/health', (req, res) => {

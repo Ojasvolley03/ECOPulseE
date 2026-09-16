@@ -16,12 +16,13 @@ import BinManagementPage from './pages/BinManagementPage';
 import ComplaintsPage from './pages/ComplaintsPage';
 import TasksPage from './pages/TasksPage';
 import AnalyticsPage from './pages/AnalyticsPage';
+import PublicBinPage from './pages/PublicBinPage';
 
 import { api } from './services/api';
 import { RefreshCw } from 'lucide-react';
 
-function ProtectedRoute({ children, allowedRoles }) {
-  const { user, loading } = useAuth();
+function ProtectedRoute({ children }) {
+  const { loading } = useAuth();
 
   if (loading) {
     return (
@@ -31,16 +32,7 @@ function ProtectedRoute({ children, allowedRoles }) {
     );
   }
 
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-
-  if (allowedRoles && !allowedRoles.includes(user.role)) {
-    if (user.role === 'ADMIN') return <Navigate to="/waste-management" replace />;
-    if (user.role === 'WORKER') return <Navigate to="/waste-management/collections" replace />;
-    return <Navigate to="/waste-management/citizen" replace />;
-  }
-
+  // Demo access: Allow seamless viewing without forced login
   return children;
 }
 
@@ -67,73 +59,76 @@ function MainLayout() {
 
       <div className="flex flex-1">
         <Sidebar />
-        <main className="flex-1 p-6 overflow-y-auto max-w-7xl mx-auto w-full">
+        <main className="flex-1 p-4 sm:p-6 overflow-y-auto max-w-7xl mx-auto w-full">
           <Routes>
-            {/* Professional SaaS Routes for Waste Management */}
-            {/* Admin Routes */}
-            <Route path="/waste-management" element={
-              <ProtectedRoute allowedRoles={['ADMIN']}>
+            {/* Core Direct Clean Routes (No forced login for demo) */}
+            <Route path="/dashboard" element={
+              <ProtectedRoute>
                 <AdminDashboard onOpenSimulator={() => { fetchBins(); setIsSimulatorOpen(true); }} />
               </ProtectedRoute>
             } />
-            <Route path="/waste-management/bins" element={
-              <ProtectedRoute allowedRoles={['ADMIN']}>
+            <Route path="/bins" element={
+              <ProtectedRoute>
                 <BinManagementPage onOpenSimulator={() => { fetchBins(); setIsSimulatorOpen(true); }} />
               </ProtectedRoute>
             } />
-            <Route path="/waste-management/complaints" element={
-              <ProtectedRoute allowedRoles={['ADMIN']}>
+            <Route path="/complaints" element={
+              <ProtectedRoute>
                 <ComplaintsPage />
               </ProtectedRoute>
             } />
-            <Route path="/waste-management/tasks" element={
-              <ProtectedRoute allowedRoles={['ADMIN']}>
+            <Route path="/tasks" element={
+              <ProtectedRoute>
                 <TasksPage />
               </ProtectedRoute>
             } />
-            <Route path="/waste-management/analytics" element={
-              <ProtectedRoute allowedRoles={['ADMIN']}>
+            <Route path="/analytics" element={
+              <ProtectedRoute>
                 <AnalyticsPage />
               </ProtectedRoute>
             } />
 
-            {/* Collection Worker Routes */}
-            <Route path="/waste-management/collections" element={
-              <ProtectedRoute allowedRoles={['WORKER']}>
+            {/* Collection Worker Dashboard & Live Smart Route */}
+            <Route path="/collections" element={
+              <ProtectedRoute>
                 <WorkerDashboard />
               </ProtectedRoute>
             } />
-            <Route path="/waste-management/history" element={
-              <ProtectedRoute allowedRoles={['WORKER']}>
+            <Route path="/history" element={
+              <ProtectedRoute>
                 <WorkerDashboard />
               </ProtectedRoute>
             } />
 
-            {/* Citizen Routes */}
-            <Route path="/waste-management/citizen" element={
-              <ProtectedRoute allowedRoles={['CITIZEN']}>
-                <CitizenDashboard />
-              </ProtectedRoute>
-            } />
-            <Route path="/waste-management/report" element={
-              <ProtectedRoute allowedRoles={['CITIZEN']}>
-                <CitizenDashboard />
-              </ProtectedRoute>
-            } />
-            <Route path="/waste-management/my-complaints" element={
-              <ProtectedRoute allowedRoles={['CITIZEN']}>
-                <CitizenDashboard />
-              </ProtectedRoute>
-            } />
+            {/* Citizen Complaint & Smart Bins Portal */}
+            <Route path="/citizen" element={<CitizenDashboard />} />
+            <Route path="/report" element={<CitizenDashboard />} />
+            <Route path="/my-complaints" element={<CitizenDashboard />} />
 
-            {/* Legacy URL Redirects for seamless backward compatibility */}
-            <Route path="/admin/*" element={<Navigate to="/waste-management" replace />} />
-            <Route path="/worker/*" element={<Navigate to="/waste-management/collections" replace />} />
-            <Route path="/citizen/*" element={<Navigate to="/waste-management/citizen" replace />} />
-            <Route path="/dashboard" element={<Navigate to="/waste-management" replace />} />
+            {/* Public Smart Bin QR Code Page */}
+            <Route path="/bin/:binCode" element={<PublicBinPage />} />
+
+            {/* Legacy & Short URL Aliases for backward compatibility */}
+            <Route path="/waste-management" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/waste-management/bins" element={<Navigate to="/bins" replace />} />
+            <Route path="/waste-management/complaints" element={<Navigate to="/complaints" replace />} />
+            <Route path="/waste-management/tasks" element={<Navigate to="/tasks" replace />} />
+            <Route path="/waste-management/analytics" element={<Navigate to="/analytics" replace />} />
+            <Route path="/waste-management/collections" element={<Navigate to="/collections" replace />} />
+            <Route path="/waste-management/history" element={<Navigate to="/history" replace />} />
+            <Route path="/waste-management/citizen" element={<Navigate to="/citizen" replace />} />
+            <Route path="/waste-management/report" element={<Navigate to="/report" replace />} />
+            <Route path="/waste-management/my-complaints" element={<Navigate to="/my-complaints" replace />} />
+            <Route path="/waste-management/*" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/waste/*" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/waste" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/admin/*" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/worker/*" element={<Navigate to="/collections" replace />} />
+            <Route path="/citizen/*" element={<Navigate to="/citizen" replace />} />
 
             {/* Root catch-all redirect */}
-            <Route path="*" element={<Navigate to="/waste-management" replace />} />
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </main>
       </div>
@@ -157,6 +152,7 @@ export default function App() {
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/bin/:binCode" element={<PublicBinPage />} />
             <Route path="/*" element={<MainLayout />} />
           </Routes>
         </BrowserRouter>

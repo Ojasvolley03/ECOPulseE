@@ -350,7 +350,7 @@ export default function AdminDashboard({ onOpenSimulator }) {
               <FileText className="w-4 h-4 text-amber-400" />
               <span>Recent Citizen Complaints</span>
             </h3>
-            <Link to="/waste-management/complaints" className="text-xs text-emerald-400 font-bold hover:underline flex items-center space-x-1">
+            <Link to="/complaints" className="text-xs text-emerald-400 font-bold hover:underline flex items-center space-x-1">
               <span>View All</span>
               <ArrowUpRight className="w-3.5 h-3.5" />
             </Link>
@@ -380,7 +380,7 @@ export default function AdminDashboard({ onOpenSimulator }) {
               <CheckCircle2 className="w-4 h-4 text-emerald-400" />
               <span>Recent Dispatch Tasks</span>
             </h3>
-            <Link to="/waste-management/tasks" className="text-xs text-emerald-400 font-bold hover:underline flex items-center space-x-1">
+            <Link to="/tasks" className="text-xs text-emerald-400 font-bold hover:underline flex items-center space-x-1">
               <span>View All</span>
               <ArrowUpRight className="w-3.5 h-3.5" />
             </Link>

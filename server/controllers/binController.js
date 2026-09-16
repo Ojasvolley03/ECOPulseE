@@ -47,6 +47,47 @@ export async function getBinById(req, res) {
   }
 }
 
+export async function getBinByCode(req, res) {
+  try {
+    const { binCode } = req.params;
+    const bin = await queryOne('SELECT * FROM waste_bins WHERE bin_code = ? OR id = ?', [binCode, binCode]);
+    if (!bin) {
+      return res.status(404).json({ success: false, message: 'Waste bin not found.' });
+    }
+
+    const readings = await query(
+      'SELECT * FROM sensor_readings WHERE bin_id = ? ORDER BY reading_time DESC LIMIT 20',
+      [bin.id]
+    );
+
+    const activeTask = await queryOne(
+      `SELECT ct.*, u.name as worker_name 
+       FROM collection_tasks ct 
+       LEFT JOIN users u ON ct.worker_id = u.id 
+       WHERE ct.bin_id = ? AND ct.status IN ('PENDING', 'ASSIGNED', 'IN_PROGRESS')`,
+      [bin.id]
+    );
+
+    const recentComplaints = await query(
+      'SELECT * FROM complaints WHERE bin_id = ? ORDER BY created_at DESC LIMIT 5',
+      [bin.id]
+    );
+
+    res.json({
+      success: true,
+      data: {
+        ...bin,
+        readings,
+        activeTask,
+        recentComplaints
+      }
+    });
+  } catch (err) {
+    console.error('Error fetching bin by code:', err);
+    res.status(500).json({ success: false, message: 'Failed to retrieve bin details.' });
+  }
+}
+
 export async function createBin(req, res) {
   try {
     const { bin_code, address, latitude, longitude, waste_type, fill_level } = req.body;

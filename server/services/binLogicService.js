@@ -45,9 +45,9 @@ export async function processBinReading(binId, fillLevel, temperature = 25.0, ba
 
   const io = getSocketIO();
 
-  // 3. Check for CRITICAL status transition
+  // 3. Check for 75%+ Capacity Transition (Worker Notification Alert)
   let createdTask = null;
-  if (newStatus === 'CRITICAL') {
+  if (normalizedFill >= 75) {
     // Check if an unresolved collection task already exists for this bin
     const existingTask = await queryOne(`
       SELECT id FROM collection_tasks 
@@ -55,11 +55,11 @@ export async function processBinReading(binId, fillLevel, temperature = 25.0, ba
     `, [binId]);
 
     if (!existingTask) {
-      // Auto-create High Priority Collection Task
+      const priorityLevel = normalizedFill >= 90 ? 'CRITICAL' : 'HIGH';
       const taskResult = await execute(`
         INSERT INTO collection_tasks (bin_id, priority, status, created_at)
-        VALUES (?, 'CRITICAL', 'PENDING', datetime('now'))
-      `, [binId]);
+        VALUES (?, ?, 'PENDING', datetime('now'))
+      `, [binId, priorityLevel]);
 
       createdTask = await queryOne(`
         SELECT ct.*, wb.bin_code, wb.address, wb.latitude, wb.longitude, wb.fill_level
@@ -67,19 +67,39 @@ export async function processBinReading(binId, fillLevel, temperature = 25.0, ba
         JOIN waste_bins wb ON ct.bin_id = wb.id
         WHERE ct.id = ?
       `, [taskResult.lastID]);
+    }
 
-      // Create Admin Alert Notification
-      await execute(`
-        INSERT INTO notifications (user_id, title, message, type)
-        VALUES (NULL, 'CRITICAL BIN ALERT', ?, 'CRITICAL_BIN')
-      `, [`Bin ${updatedBin.bin_code} at ${updatedBin.address} reached CRITICAL level (${normalizedFill}%)!`]);
+    const alertMessage = `⚠️ Worker Alert: Dustbin ${updatedBin.bin_code} at ${updatedBin.address} has reached ${normalizedFill}% capacity!`;
 
-      if (io) {
-        io.emit('critical_alert', {
-          bin: updatedBin,
-          task: createdTask,
-          message: `Bin ${updatedBin.bin_code} at ${updatedBin.address} reached ${normalizedFill}% fill level!`
-        });
+    // Create Notification in database
+    await execute(`
+      INSERT INTO notifications (user_id, title, message, type)
+      VALUES (NULL, '75%+ Capacity Alert', ?, 'CAPACITY_ALERT')
+    `, [alertMessage]);
+
+    if (io) {
+      const alertPayload = {
+        id: `alert-${Date.now()}-${binId}`,
+        bin_id: updatedBin.id,
+        bin_code: updatedBin.bin_code,
+        address: updatedBin.address,
+        fill_level: normalizedFill,
+        latitude: updatedBin.latitude,
+        longitude: updatedBin.longitude,
+        waste_type: updatedBin.waste_type,
+        status: newStatus,
+        timestamp: new Date().toISOString(),
+        message: alertMessage,
+        task: createdTask
+      };
+
+      io.emit('worker_alert', alertPayload);
+      io.emit('critical_alert', {
+        bin: updatedBin,
+        task: createdTask,
+        message: alertMessage
+      });
+      if (createdTask) {
         io.emit('task_created', createdTask);
       }
     }

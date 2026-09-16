@@ -51,9 +51,15 @@ export const api = {
   // Bins
   getBins: () => request('/bins'),
   getBinById: (id) => request(`/bins/${id}`),
+  getBinByCode: (code) => request(`/bins/code/${code}`),
   createBin: (binData) => request('/bins', { method: 'POST', body: binData }),
   updateBin: (id, binData) => request(`/bins/${id}`, { method: 'PUT', body: binData }),
   deleteBin: (id) => request(`/bins/${id}`, { method: 'DELETE' }),
+
+  // Fleet Vehicles & Live Tracking
+  getVehicles: () => request('/vehicles'),
+  updateVehicleLocation: (id, data) => request(`/vehicles/${id}/location`, { method: 'PUT', body: data }),
+  getOptimizedRoute: (params = '') => request(`/vehicles/route${params}`),
 
   // Sensors
   addSensorReading: (reading) => request('/sensors/reading', { method: 'POST', body: reading }),
