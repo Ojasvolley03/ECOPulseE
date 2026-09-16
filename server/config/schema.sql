@@ -1,0 +1,72 @@
+-- Database Schema for Smart Waste Management System
+
+CREATE TABLE IF NOT EXISTS users (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  email TEXT NOT NULL UNIQUE,
+  password_hash TEXT NOT NULL,
+  phone TEXT,
+  role TEXT NOT NULL CHECK(role IN ('CITIZEN', 'WORKER', 'ADMIN')),
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS waste_bins (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  bin_code TEXT NOT NULL UNIQUE,
+  address TEXT NOT NULL,
+  latitude REAL NOT NULL,
+  longitude REAL NOT NULL,
+  fill_level INTEGER NOT NULL DEFAULT 0 CHECK(fill_level BETWEEN 0 AND 100),
+  waste_type TEXT NOT NULL DEFAULT 'General',
+  status TEXT NOT NULL DEFAULT 'NORMAL' CHECK(status IN ('NORMAL', 'MEDIUM', 'NEARLY_FULL', 'CRITICAL')),
+  last_updated DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS sensor_readings (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  bin_id INTEGER NOT NULL,
+  fill_level INTEGER NOT NULL,
+  temperature REAL DEFAULT 25.0,
+  battery_level REAL DEFAULT 100.0,
+  reading_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (bin_id) REFERENCES waste_bins(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS complaints (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  bin_id INTEGER,
+  description TEXT NOT NULL,
+  image_url TEXT,
+  location_address TEXT NOT NULL,
+  latitude REAL,
+  longitude REAL,
+  priority TEXT NOT NULL DEFAULT 'MEDIUM' CHECK(priority IN ('LOW', 'MEDIUM', 'HIGH')),
+  status TEXT NOT NULL DEFAULT 'PENDING' CHECK(status IN ('PENDING', 'IN_PROGRESS', 'RESOLVED')),
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (bin_id) REFERENCES waste_bins(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS collection_tasks (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  bin_id INTEGER NOT NULL,
+  worker_id INTEGER,
+  priority TEXT NOT NULL DEFAULT 'HIGH' CHECK(priority IN ('LOW', 'MEDIUM', 'HIGH', 'CRITICAL')),
+  status TEXT NOT NULL DEFAULT 'PENDING' CHECK(status IN ('PENDING', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED')),
+  assignment_time DATETIME,
+  completion_time DATETIME,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (bin_id) REFERENCES waste_bins(id) ON DELETE CASCADE,
+  FOREIGN KEY (worker_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS notifications (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER, -- NULL means system-wide / admin broadcast
+  title TEXT NOT NULL,
+  message TEXT NOT NULL,
+  type TEXT NOT NULL,
+  read_status INTEGER DEFAULT 0,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
