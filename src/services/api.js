@@ -58,6 +58,9 @@ export const api = {
 
   // Fleet Vehicles & Live Tracking
   getVehicles: () => request('/vehicles'),
+  createVehicle: (vehicleData) => request('/vehicles', { method: 'POST', body: vehicleData }),
+  updateVehicle: (id, vehicleData) => request(`/vehicles/${id}`, { method: 'PUT', body: vehicleData }),
+  deleteVehicle: (id) => request(`/vehicles/${id}`, { method: 'DELETE' }),
   updateVehicleLocation: (id, data) => request(`/vehicles/${id}/location`, { method: 'PUT', body: data }),
   getOptimizedRoute: (params = '') => request(`/vehicles/route${params}`),
 

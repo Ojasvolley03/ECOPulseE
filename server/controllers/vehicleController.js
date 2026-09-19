@@ -1,57 +1,5 @@
-import { query } from '../config/db.js';
+import { query, queryOne, execute } from '../config/db.js';
 import { getSocketIO } from '../services/socketService.js';
-
-// In-memory / Real-time Collection Vehicle Fleet State
-let vehicles = [
-  {
-    id: 'TRK-101',
-    name: 'EcoPulse Rapid Truck #1',
-    plate: 'CA-987-ECO',
-    driver: 'John Driver',
-    phone: '+1 555-0101',
-    latitude: 37.7850,
-    longitude: -122.4080,
-    speed: 32, // km/h
-    heading: 45, // degrees
-    capacity_used: 68, // %
-    status: 'ACTIVE_COLLECTING',
-    target_bin: 'BIN-103',
-    fuel_battery: 84, // %
-    last_updated: new Date().toISOString()
-  },
-  {
-    id: 'TRK-102',
-    name: 'EcoPulse City Hauler #2',
-    plate: 'CA-442-GRN',
-    driver: 'Sarah Miller',
-    phone: '+1 555-0102',
-    latitude: 37.7720,
-    longitude: -122.4250,
-    speed: 26,
-    heading: 120,
-    capacity_used: 42,
-    status: 'EN_ROUTE',
-    target_bin: 'BIN-102',
-    fuel_battery: 91,
-    last_updated: new Date().toISOString()
-  },
-  {
-    id: 'TRK-103',
-    name: 'EcoPulse SOMA Navigator #3',
-    plate: 'CA-103-WST',
-    driver: 'David Vance',
-    phone: '+1 555-0103',
-    latitude: 37.7650,
-    longitude: -122.4140,
-    speed: 38,
-    heading: 310,
-    capacity_used: 82,
-    status: 'RETURNING_TO_DEPOT',
-    target_bin: null,
-    fuel_battery: 67,
-    last_updated: new Date().toISOString()
-  }
-];
 
 // Helper: Haversine distance in kilometers between two coordinates
 export function calculateDistanceKm(lat1, lon1, lat2, lon2) {
@@ -68,6 +16,7 @@ export function calculateDistanceKm(lat1, lon1, lat2, lon2) {
 
 export async function getVehicles(req, res) {
   try {
+    const vehicles = await query('SELECT * FROM vehicles ORDER BY id ASC');
     res.json({
       success: true,
       count: vehicles.length,
@@ -79,40 +28,132 @@ export async function getVehicles(req, res) {
   }
 }
 
-export async function updateVehicleLocation(req, res) {
+export async function createVehicle(req, res) {
   try {
-    const { id } = req.params;
-    const { latitude, longitude, speed, heading, capacity_used, status, target_bin } = req.body;
+    const { vehicle_id, name, plate, driver, phone, latitude, longitude, capacity_used, status, fuel_battery } = req.body;
 
-    const vIndex = vehicles.findIndex(v => v.id === id);
-    if (vIndex === -1) {
-      return res.status(404).json({ success: false, message: 'Vehicle not found.' });
+    if (!vehicle_id || !name || !plate || latitude === undefined || longitude === undefined) {
+      return res.status(400).json({ success: false, message: 'Vehicle ID, name, plate, latitude, and longitude are required.' });
     }
 
-    vehicles[vIndex] = {
-      ...vehicles[vIndex],
-      latitude: latitude !== undefined ? parseFloat(latitude) : vehicles[vIndex].latitude,
-      longitude: longitude !== undefined ? parseFloat(longitude) : vehicles[vIndex].longitude,
-      speed: speed !== undefined ? parseInt(speed) : vehicles[vIndex].speed,
-      heading: heading !== undefined ? parseInt(heading) : vehicles[vIndex].heading,
-      capacity_used: capacity_used !== undefined ? parseInt(capacity_used) : vehicles[vIndex].capacity_used,
-      status: status || vehicles[vIndex].status,
-      target_bin: target_bin !== undefined ? target_bin : vehicles[vIndex].target_bin,
-      last_updated: new Date().toISOString()
-    };
+    const capacity = capacity_used !== undefined ? Math.max(0, Math.min(100, parseInt(capacity_used))) : 0;
+    const fuel = fuel_battery !== undefined ? Math.max(0, Math.min(100, parseInt(fuel_battery))) : 100;
+    const vehicleStatus = status || 'AVAILABLE';
+
+    const result = await execute(`
+      INSERT INTO vehicles (vehicle_id, name, plate, driver, phone, latitude, longitude, capacity_used, status, fuel_battery, last_updated)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+    `, [vehicle_id, name, plate, driver, phone, parseFloat(latitude), parseFloat(longitude), capacity, vehicleStatus, fuel]);
+
+    const newVehicle = await queryOne('SELECT * FROM vehicles WHERE id = ?', [result.lastID]);
 
     const io = getSocketIO();
     if (io) {
-      io.emit('vehicle_location_updated', vehicles[vIndex]);
+      io.emit('vehicle_created', newVehicle);
+    }
+
+    res.status(201).json({ success: true, message: 'Vehicle created successfully.', data: newVehicle });
+  } catch (err) {
+    console.error('Error creating vehicle:', err);
+    res.status(500).json({ success: false, message: err.message.includes('UNIQUE') ? 'Vehicle ID already exists.' : 'Failed to create vehicle.' });
+  }
+}
+
+export async function updateVehicle(req, res) {
+  try {
+    const { id } = req.params;
+    const { name, plate, driver, phone, latitude, longitude, capacity_used, status, fuel_battery } = req.body;
+
+    const existingVehicle = await queryOne('SELECT * FROM vehicles WHERE id = ?', [id]);
+    if (!existingVehicle) {
+      return res.status(404).json({ success: false, message: 'Vehicle not found.' });
+    }
+
+    await execute(`
+      UPDATE vehicles
+      SET name = COALESCE(?, name),
+          plate = COALESCE(?, plate),
+          driver = COALESCE(?, driver),
+          phone = COALESCE(?, phone),
+          latitude = COALESCE(?, latitude),
+          longitude = COALESCE(?, longitude),
+          capacity_used = COALESCE(?, capacity_used),
+          status = COALESCE(?, status),
+          fuel_battery = COALESCE(?, fuel_battery),
+          last_updated = datetime('now')
+      WHERE id = ?
+    `, [name, plate, driver, phone, latitude, longitude, capacity_used, status, fuel_battery, id]);
+
+    const updatedVehicle = await queryOne('SELECT * FROM vehicles WHERE id = ?', [id]);
+
+    const io = getSocketIO();
+    if (io) {
+      io.emit('vehicle_updated', updatedVehicle);
+    }
+
+    res.json({ success: true, message: 'Vehicle updated successfully.', data: updatedVehicle });
+  } catch (err) {
+    console.error('Error updating vehicle:', err);
+    res.status(500).json({ success: false, message: 'Failed to update vehicle.' });
+  }
+}
+
+export async function deleteVehicle(req, res) {
+  try {
+    const { id } = req.params;
+    const vehicle = await queryOne('SELECT * FROM vehicles WHERE id = ?', [id]);
+    if (!vehicle) {
+      return res.status(404).json({ success: false, message: 'Vehicle not found.' });
+    }
+
+    await execute('DELETE FROM vehicles WHERE id = ?', [id]);
+
+    const io = getSocketIO();
+    if (io) {
+      io.emit('vehicle_deleted', { id: parseInt(id) });
+    }
+
+    res.json({ success: true, message: `Vehicle ${vehicle.vehicle_id} deleted successfully.` });
+  } catch (err) {
+    console.error('Error deleting vehicle:', err);
+    res.status(500).json({ success: false, message: 'Failed to delete vehicle.' });
+  }
+}
+
+export async function updateVehicleLocation(req, res) {
+  try {
+    const { id } = req.params;
+    const { latitude, longitude, capacity_used, status } = req.body;
+
+    const existingVehicle = await queryOne('SELECT * FROM vehicles WHERE id = ?', [id]);
+    if (!existingVehicle) {
+      return res.status(404).json({ success: false, message: 'Vehicle not found.' });
+    }
+
+    await execute(`
+      UPDATE vehicles
+      SET latitude = COALESCE(?, latitude),
+          longitude = COALESCE(?, longitude),
+          capacity_used = COALESCE(?, capacity_used),
+          status = COALESCE(?, status),
+          last_updated = datetime('now')
+      WHERE id = ?
+    `, [latitude, longitude, capacity_used, status, id]);
+
+    const updatedVehicle = await queryOne('SELECT * FROM vehicles WHERE id = ?', [id]);
+
+    const io = getSocketIO();
+    if (io) {
+      io.emit('vehicle_location_updated', updatedVehicle);
     }
 
     res.json({
       success: true,
-      message: 'Vehicle telemetry updated.',
-      data: vehicles[vIndex]
+      message: 'Vehicle location updated.',
+      data: updatedVehicle
     });
   } catch (err) {
-    console.error('Error updating vehicle telemetry:', err);
+    console.error('Error updating vehicle location:', err);
     res.status(500).json({ success: false, message: 'Failed to update vehicle location.' });
   }
 }
@@ -123,8 +164,8 @@ export async function updateVehicleLocation(req, res) {
  */
 export async function getOptimizedRoute(req, res) {
   try {
-    const startLat = req.query.startLat ? parseFloat(req.query.startLat) : (vehicles[0]?.latitude || 37.7749);
-    const startLng = req.query.startLng ? parseFloat(req.query.startLng) : (vehicles[0]?.longitude || -122.4194);
+    const startLat = req.query.startLat ? parseFloat(req.query.startLat) : 37.7749;
+    const startLng = req.query.startLng ? parseFloat(req.query.startLng) : -122.4194;
     const minFillLevel = req.query.minFill ? parseInt(req.query.minFill) : 75;
 
     // Fetch bins needing collection (>= 75% fill or critical)

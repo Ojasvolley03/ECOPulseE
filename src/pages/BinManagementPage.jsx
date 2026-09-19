@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import Modal from '../components/common/Modal';
+import LocationPicker from '../components/common/LocationPicker';
 import { StatusBadge } from '../components/common/Badge';
 import { api } from '../services/api';
 import { Trash2, Plus, Edit, Trash, MapPin, RefreshCw, Cpu, QrCode, ExternalLink, Download, Printer, Copy, Check } from 'lucide-react';
@@ -14,8 +15,8 @@ export default function BinManagementPage({ onOpenSimulator }) {
   const [editingBin, setEditingBin] = useState(null);
   const [binCode, setBinCode] = useState('');
   const [address, setAddress] = useState('');
-  const [latitude, setLatitude] = useState(37.7749);
-  const [longitude, setLongitude] = useState(-122.4194);
+  const [latitude, setLatitude] = useState(null);
+  const [longitude, setLongitude] = useState(null);
   const [wasteType, setWasteType] = useState('General');
   const [fillLevel, setFillLevel] = useState(0);
 
@@ -46,10 +47,10 @@ export default function BinManagementPage({ onOpenSimulator }) {
     setEditingBin(null);
     setBinCode(`BIN-${Math.floor(100 + Math.random() * 900)}`);
     setAddress('');
-    setLatitude(37.7800 + Math.random() * 0.02);
-    setLongitude(-122.4100 + Math.random() * 0.02);
+    setLatitude(null);
+    setLongitude(null);
     setWasteType('General');
-    setFillLevel(15);
+    setFillLevel(0);
     setIsModalOpen(true);
   };
 
@@ -66,6 +67,7 @@ export default function BinManagementPage({ onOpenSimulator }) {
 
   const handleSubmitBin = async (e) => {
     e.preventDefault();
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
     try {
       if (editingBin) {
         await api.updateBin(editingBin.id, {
@@ -100,6 +102,12 @@ export default function BinManagementPage({ onOpenSimulator }) {
     } catch (err) {
       console.error('Error deleting bin:', err);
     }
+  };
+
+  const handleLocationSelect = (lat, lng, selectedAddress) => {
+    setLatitude(lat);
+    setLongitude(lng);
+    if (selectedAddress) setAddress(selectedAddress);
   };
 
   const handleCopyPublicUrl = (code) => {
@@ -326,42 +334,12 @@ export default function BinManagementPage({ onOpenSimulator }) {
             />
           </div>
 
-          <div>
-            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Address / Landmark</label>
-            <input
-              type="text"
-              required
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-emerald-500"
-              placeholder="e.g., Downtown Plaza North Entry"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Latitude</label>
-              <input
-                type="number"
-                step="any"
-                required
-                value={latitude}
-                onChange={(e) => setLatitude(parseFloat(e.target.value))}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-100 font-mono focus:outline-none focus:border-emerald-500"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Longitude</label>
-              <input
-                type="number"
-                step="any"
-                required
-                value={longitude}
-                onChange={(e) => setLongitude(parseFloat(e.target.value))}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-100 font-mono focus:outline-none focus:border-emerald-500"
-              />
-            </div>
-          </div>
+          <LocationPicker
+            onLocationSelect={handleLocationSelect}
+            initialLat={latitude}
+            initialLng={longitude}
+            initialAddress={address}
+          />
 
           <div className="grid grid-cols-2 gap-4">
             <div>

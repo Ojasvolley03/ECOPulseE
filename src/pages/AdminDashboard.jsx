@@ -4,6 +4,8 @@ import StatCard from '../components/common/StatCard';
 import WasteMap from '../components/map/WasteMap';
 import SensorSimulatorModal from '../components/simulator/SensorSimulatorModal';
 import PredictionWidget from '../components/ai/PredictionWidget';
+import Modal from '../components/common/Modal';
+import LocationPicker from '../components/common/LocationPicker';
 import { StatusBadge, PriorityBadge, TaskStatusBadge } from '../components/common/Badge';
 import { api } from '../services/api';
 import { useSocket } from '../context/SocketContext';
@@ -20,7 +22,10 @@ import {
   Flame, 
   Plus, 
   ShieldAlert,
-  ArrowUpRight
+  ArrowUpRight,
+  MapPin,
+  Trash,
+  Truck
 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 
@@ -29,6 +34,31 @@ export default function AdminDashboard({ onOpenSimulator }) {
   const [bins, setBins] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedBin, setSelectedBin] = useState(null);
+  
+  // Add Dustbin Modal State
+  const [isAddBinModalOpen, setIsAddBinModalOpen] = useState(false);
+  const [isRemoveBinModalOpen, setIsRemoveBinModalOpen] = useState(false);
+  const [newBinCode, setNewBinCode] = useState('');
+  const [newBinAddress, setNewBinAddress] = useState('');
+  const [newBinLat, setNewBinLat] = useState(null);
+  const [newBinLng, setNewBinLng] = useState(null);
+  const [newBinFillLevel, setNewBinFillLevel] = useState(0);
+  const [newBinStatus, setNewBinStatus] = useState('NORMAL');
+  const [newBinWasteType, setNewBinWasteType] = useState('General');
+
+  // Add Vehicle Modal State
+  const [isAddVehicleModalOpen, setIsAddVehicleModalOpen] = useState(false);
+  const [vehicles, setVehicles] = useState([]);
+  const [newVehicleId, setNewVehicleId] = useState('');
+  const [newVehicleName, setNewVehicleName] = useState('');
+  const [newVehiclePlate, setNewVehiclePlate] = useState('');
+  const [newVehicleDriver, setNewVehicleDriver] = useState('');
+  const [newVehiclePhone, setNewVehiclePhone] = useState('');
+  const [newVehicleLat, setNewVehicleLat] = useState(null);
+  const [newVehicleLng, setNewVehicleLng] = useState(null);
+  const [newVehicleCapacity, setNewVehicleCapacity] = useState(0);
+  const [newVehicleStatus, setNewVehicleStatus] = useState('AVAILABLE');
+  const [newVehicleFuel, setNewVehicleFuel] = useState(100);
 
   const { socket } = useSocket();
 
@@ -68,17 +98,110 @@ export default function AdminDashboard({ onOpenSimulator }) {
 
   const fetchDashboardData = async () => {
     try {
-      const [statsRes, binsRes] = await Promise.all([
+      const [statsRes, binsRes, vehiclesRes] = await Promise.all([
         api.getDashboardStats(),
-        api.getBins()
+        api.getBins(),
+        api.getVehicles()
       ]);
 
       if (statsRes.success) setStats(statsRes.data);
       if (binsRes.success) setBins(binsRes.data);
+      if (vehiclesRes.success) setVehicles(vehiclesRes.data);
     } catch (err) {
       console.error('Error fetching admin dashboard:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleOpenAddBinModal = () => {
+    setNewBinCode(`BIN-${Math.floor(100 + Math.random() * 900)}`);
+    setNewBinAddress('');
+    setNewBinLat(null);
+    setNewBinLng(null);
+    setNewBinFillLevel(0);
+    setNewBinStatus('NORMAL');
+    setNewBinWasteType('General');
+    setIsAddBinModalOpen(true);
+  };
+
+  const handleLocationSelect = (lat, lng, address) => {
+    setNewBinLat(lat);
+    setNewBinLng(lng);
+    setNewBinAddress(address);
+  };
+
+  const handleVehicleLocationSelect = (lat, lng, address) => {
+    setNewVehicleLat(lat);
+    setNewVehicleLng(lng);
+  };
+
+  const handleOpenAddVehicleModal = () => {
+    setNewVehicleId(`VH-${Math.floor(100 + Math.random() * 900)}`);
+    setNewVehicleName('');
+    setNewVehiclePlate('');
+    setNewVehicleDriver('');
+    setNewVehiclePhone('');
+    setNewVehicleLat(null);
+    setNewVehicleLng(null);
+    setNewVehicleCapacity(0);
+    setNewVehicleStatus('AVAILABLE');
+    setNewVehicleFuel(100);
+    setIsAddVehicleModalOpen(true);
+  };
+
+  const handleAddVehicle = async (e) => {
+    e.preventDefault();
+    if (!Number.isFinite(newVehicleLat) || !Number.isFinite(newVehicleLng)) return;
+    try {
+      await api.createVehicle({
+        vehicle_id: newVehicleId,
+        name: newVehicleName,
+        plate: newVehiclePlate,
+        driver: newVehicleDriver,
+        phone: newVehiclePhone,
+        latitude: newVehicleLat,
+        longitude: newVehicleLng,
+        capacity_used: newVehicleCapacity,
+        status: newVehicleStatus,
+        fuel_battery: newVehicleFuel
+      });
+      setIsAddVehicleModalOpen(false);
+      fetchDashboardData();
+    } catch (err) {
+      console.error('Error adding vehicle:', err);
+      alert('Failed to add vehicle. Please try again.');
+    }
+  };
+
+  const handleAddDustbin = async (e) => {
+    e.preventDefault();
+    if (!Number.isFinite(newBinLat) || !Number.isFinite(newBinLng)) return;
+    try {
+      await api.createBin({
+        bin_code: newBinCode,
+        address: newBinAddress,
+        latitude: newBinLat,
+        longitude: newBinLng,
+        waste_type: newBinWasteType,
+        fill_level: newBinFillLevel
+      });
+      setIsAddBinModalOpen(false);
+      fetchDashboardData();
+    } catch (err) {
+      console.error('Error adding dustbin:', err);
+      alert('Failed to add dustbin. Please try again.');
+    }
+  };
+
+  const handleRemoveDustbin = async (binId) => {
+    if (!window.confirm('Are you sure you want to permanently remove this dustbin?')) return;
+    try {
+      await api.deleteBin(binId);
+      fetchDashboardData();
+    } catch (err) {
+      console.error('Error removing dustbin:', err);
+      alert('Failed to remove dustbin. Please try again.');
     }
   };
 
@@ -132,6 +255,29 @@ export default function AdminDashboard({ onOpenSimulator }) {
             title="Refresh Dashboard Data"
           >
             <RefreshCw className="w-4 h-4" />
+          </button>
+          <button
+            onClick={handleOpenAddBinModal}
+            className="flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-500 text-white font-bold text-xs hover:from-blue-500 hover:to-indigo-400 transition shadow-lg"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add Dustbin</span>
+          </button>
+          {bins.length > 0 && (
+            <button
+              onClick={() => setIsRemoveBinModalOpen(true)}
+              className="flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-red-500 text-white font-bold text-xs hover:from-rose-500 hover:to-red-400 transition shadow-lg"
+            >
+              <Trash className="w-4 h-4" />
+              <span>Remove Dustbin</span>
+            </button>
+          )}
+          <button
+            onClick={handleOpenAddVehicleModal}
+            className="flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-pink-500 text-white font-bold text-xs hover:from-purple-500 hover:to-pink-400 transition shadow-lg"
+          >
+            <Truck className="w-4 h-4" />
+            <span>Add Vehicle</span>
           </button>
           <button
             onClick={onOpenSimulator}
@@ -234,7 +380,7 @@ export default function AdminDashboard({ onOpenSimulator }) {
             <span className="text-xs text-slate-400 font-mono">Click marker for telemetry details</span>
           </div>
 
-          <WasteMap bins={bins} onSelectBin={setSelectedBin} height="h-[480px]" />
+          <WasteMap bins={bins} vehicles={vehicles} onSelectBin={setSelectedBin} height="h-[480px]" />
         </div>
 
         {/* Real-Time Critical Alerts & AI Predictor (1 col) */}
@@ -403,6 +549,274 @@ export default function AdminDashboard({ onOpenSimulator }) {
         </div>
 
       </div>
+
+      {/* Add Dustbin Modal */}
+      <Modal
+        isOpen={isAddBinModalOpen}
+        onClose={() => setIsAddBinModalOpen(false)}
+        title="Add New Dustbin"
+      >
+        <form onSubmit={handleAddDustbin} className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Dustbin ID</label>
+            <input
+              type="text"
+              required
+              value={newBinCode}
+              onChange={(e) => setNewBinCode(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-100 font-mono focus:outline-none focus:border-emerald-500"
+              placeholder="e.g., BIN-101"
+            />
+          </div>
+
+          <LocationPicker
+            onLocationSelect={handleLocationSelect}
+            initialLat={newBinLat}
+            initialLng={newBinLng}
+            initialAddress={newBinAddress}
+          />
+
+          <div>
+            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Current Fill Level (%)</label>
+            <input
+              type="number"
+              min="0"
+              max="100"
+              required
+              value={newBinFillLevel}
+              onChange={(e) => setNewBinFillLevel(parseInt(e.target.value))}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-100 font-mono focus:outline-none focus:border-emerald-500"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Status</label>
+              <select
+                value={newBinStatus}
+                onChange={(e) => setNewBinStatus(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-emerald-500 font-mono"
+              >
+                <option value="NORMAL">Normal</option>
+                <option value="MEDIUM">Medium</option>
+                <option value="NEARLY_FULL">Nearly Full</option>
+                <option value="CRITICAL">Critical</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Waste Type</label>
+              <select
+                value={newBinWasteType}
+                onChange={(e) => setNewBinWasteType(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-emerald-500 font-mono"
+              >
+                <option value="General">General Waste</option>
+                <option value="Recyclable">Recyclable</option>
+                <option value="Organic">Organic</option>
+                <option value="Paper">Paper</option>
+                <option value="Glass">Glass</option>
+                <option value="Metal">Metal</option>
+                <option value="Hazardous">Hazardous</option>
+                <option value="Mixed">Mixed Waste</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="pt-4 border-t border-slate-800 flex items-center justify-end space-x-3">
+            <button
+              type="button"
+              onClick={() => setIsAddBinModalOpen(false)}
+              className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:bg-slate-800"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold text-xs transition shadow-lg"
+            >
+              Add Dustbin
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Remove Dustbin Modal */}
+      <Modal
+        isOpen={isRemoveBinModalOpen}
+        onClose={() => setIsRemoveBinModalOpen(false)}
+        title="Remove Dustbin"
+      >
+        <div className="space-y-4">
+          <p className="text-xs text-slate-400">
+            Select a dustbin to permanently remove from the system. This action cannot be undone.
+          </p>
+
+          <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+            {bins.length === 0 ? (
+              <p className="text-xs text-slate-500 p-4 text-center">No dustbins available to remove.</p>
+            ) : (
+              bins.map((bin) => (
+                <div
+                  key={bin.id}
+                  className="p-3 bg-slate-950 hover:bg-rose-500/10 border border-slate-800 hover:border-rose-500/40 rounded-xl flex items-center justify-between text-xs transition group"
+                >
+                  <div>
+                    <span className="font-mono font-bold text-emerald-400">{bin.bin_code}</span>
+                    <p className="text-[11px] text-slate-400 truncate max-w-[180px]">{bin.address}</p>
+                  </div>
+                  <button
+                    onClick={() => handleRemoveDustbin(bin.id)}
+                    className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-semibold text-xs transition"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+
+          <div className="pt-4 border-t border-slate-800 flex items-center justify-end">
+            <button
+              onClick={() => setIsRemoveBinModalOpen(false)}
+              className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:bg-slate-800"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Add Vehicle Modal */}
+      <Modal
+        isOpen={isAddVehicleModalOpen}
+        onClose={() => setIsAddVehicleModalOpen(false)}
+        title="Add New Vehicle"
+      >
+        <form onSubmit={handleAddVehicle} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Vehicle ID</label>
+              <input
+                type="text"
+                required
+                value={newVehicleId}
+                onChange={(e) => setNewVehicleId(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-100 font-mono focus:outline-none focus:border-emerald-500"
+                placeholder="e.g., VH-101"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">License Plate</label>
+              <input
+                type="text"
+                required
+                value={newVehiclePlate}
+                onChange={(e) => setNewVehiclePlate(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-100 font-mono focus:outline-none focus:border-emerald-500"
+                placeholder="e.g., CA-123-ABC"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Vehicle Name</label>
+            <input
+              type="text"
+              required
+              value={newVehicleName}
+              onChange={(e) => setNewVehicleName(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-emerald-500"
+              placeholder="e.g., Collection Truck #1"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Driver Name</label>
+              <input
+                type="text"
+                value={newVehicleDriver}
+                onChange={(e) => setNewVehicleDriver(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-emerald-500"
+                placeholder="e.g., John Driver"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Driver Phone</label>
+              <input
+                type="text"
+                value={newVehiclePhone}
+                onChange={(e) => setNewVehiclePhone(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-100 font-mono focus:outline-none focus:border-emerald-500"
+                placeholder="e.g., +1 555-0100"
+              />
+            </div>
+          </div>
+
+          <LocationPicker
+            onLocationSelect={handleVehicleLocationSelect}
+            initialLat={newVehicleLat}
+            initialLng={newVehicleLng}
+            initialAddress=""
+          />
+
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Capacity Used (%)</label>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                value={newVehicleCapacity}
+                onChange={(e) => setNewVehicleCapacity(parseInt(e.target.value))}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-100 font-mono focus:outline-none focus:border-emerald-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Fuel/Battery (%)</label>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                value={newVehicleFuel}
+                onChange={(e) => setNewVehicleFuel(parseInt(e.target.value))}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-100 font-mono focus:outline-none focus:border-emerald-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Status</label>
+              <select
+                value={newVehicleStatus}
+                onChange={(e) => setNewVehicleStatus(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-emerald-500 font-mono"
+              >
+                <option value="AVAILABLE">Available</option>
+                <option value="EN_ROUTE">En Route</option>
+                <option value="ACTIVE_COLLECTING">Active Collecting</option>
+                <option value="RETURNING_TO_DEPOT">Returning to Depot</option>
+                <option value="MAINTENANCE">Maintenance</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="pt-4 border-t border-slate-800 flex items-center justify-end space-x-3">
+            <button
+              type="button"
+              onClick={() => setIsAddVehicleModalOpen(false)}
+              className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:bg-slate-800"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs transition shadow-lg"
+            >
+              Add Vehicle
+            </button>
+          </div>
+        </form>
+      </Modal>
 
     </div>
   );
