@@ -4,6 +4,7 @@ import Modal from '../components/common/Modal';
 import LocationPicker from '../components/common/LocationPicker';
 import { StatusBadge } from '../components/common/Badge';
 import { api } from '../services/api';
+import { useSocket } from '../context/SocketContext';
 import { Trash2, Plus, Edit, Trash, MapPin, RefreshCw, Cpu, QrCode, ExternalLink, Download, Printer, Copy, Check } from 'lucide-react';
 
 export default function BinManagementPage({ onOpenSimulator }) {
@@ -27,10 +28,25 @@ export default function BinManagementPage({ onOpenSimulator }) {
   // Scan Simulator State
   const [isScanSimOpen, setIsScanSimOpen] = useState(false);
   const [simScanCode, setSimScanCode] = useState('');
+  const { socket } = useSocket();
 
   useEffect(() => {
     fetchBins();
   }, []);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    socket.on('bin_created', fetchBins);
+    socket.on('bin_updated', fetchBins);
+    socket.on('bin_deleted', fetchBins);
+
+    return () => {
+      socket.off('bin_created', fetchBins);
+      socket.off('bin_updated', fetchBins);
+      socket.off('bin_deleted', fetchBins);
+    };
+  }, [socket]);
 
   const fetchBins = async () => {
     try {

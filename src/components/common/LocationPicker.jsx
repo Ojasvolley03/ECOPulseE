@@ -1,5 +1,22 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from 'react-leaflet';
 import { MapPin, Search, X } from 'lucide-react';
+
+const DEFAULT_MAP_CENTER = [20, 0];
+
+function PickerMap({ position, onMapLocationSelect }) {
+  const map = useMap();
+
+  useMapEvents({
+    click: (event) => onMapLocationSelect(event.latlng.lat, event.latlng.lng)
+  });
+
+  useEffect(() => {
+    if (position) map.setView(position, Math.max(map.getZoom(), 13), { animate: true });
+  }, [map, position]);
+
+  return position ? <Marker position={position} /> : null;
+}
 
 export default function LocationPicker({ onLocationSelect, initialLat, initialLng, initialAddress }) {
   const [address, setAddress] = useState(initialAddress || '');
@@ -9,6 +26,10 @@ export default function LocationPicker({ onLocationSelect, initialLat, initialLn
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [loading, setLoading] = useState(false);
   const searchRef = useRef(null);
+
+  const selectedPosition = Number.isFinite(latitude) && Number.isFinite(longitude)
+    ? [latitude, longitude]
+    : null;
 
   useEffect(() => {
     const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
@@ -24,6 +45,26 @@ export default function LocationPicker({ onLocationSelect, initialLat, initialLn
       script.remove();
     };
   }, []);
+
+  const handleMapLocationSelect = async (lat, lng) => {
+    const fallbackAddress = `Pinned location (${lat.toFixed(6)}, ${lng.toFixed(6)})`;
+    setLatitude(lat);
+    setLongitude(lng);
+    setAddress(fallbackAddress);
+    onLocationSelect(lat, lng, fallbackAddress);
+
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`
+      );
+      const data = await response.json();
+      const resolvedAddress = data.display_name || fallbackAddress;
+      setAddress(resolvedAddress);
+      onLocationSelect(lat, lng, resolvedAddress);
+    } catch (error) {
+      console.error('Error resolving pinned location:', error);
+    }
+  };
 
   // Handle address search using Google Places API (if available) or fallback
   const handleAddressSearch = async (searchAddress) => {
@@ -163,6 +204,7 @@ export default function LocationPicker({ onLocationSelect, initialLat, initialLn
           />
           {address && (
             <button
+              type="button"
               onClick={() => {
                 setAddress('');
                 setSuggestions([]);
@@ -181,6 +223,7 @@ export default function LocationPicker({ onLocationSelect, initialLat, initialLn
             {suggestions.map((suggestion, index) => (
               <button
                 key={index}
+                type="button"
                 onClick={() => handleSelectSuggestion(suggestion)}
                 className="w-full text-left px-4 py-3 hover:bg-slate-800 transition border-b border-slate-800 last:border-b-0"
               >
@@ -194,6 +237,32 @@ export default function LocationPicker({ onLocationSelect, initialLat, initialLn
             ))}
           </div>
         )}
+      </div>
+
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between">
+          <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider">
+            Click Map To Place
+          </label>
+          <span className="text-[10px] text-slate-500">Select a precise point</span>
+        </div>
+        <div className="h-52 overflow-hidden rounded-xl border border-slate-800">
+          <MapContainer
+            center={selectedPosition || DEFAULT_MAP_CENTER}
+            zoom={selectedPosition ? 13 : 2}
+            scrollWheelZoom={true}
+            className="w-full h-full"
+          >
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
+            <PickerMap
+              position={selectedPosition}
+              onMapLocationSelect={handleMapLocationSelect}
+            />
+          </MapContainer>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
@@ -224,6 +293,7 @@ export default function LocationPicker({ onLocationSelect, initialLat, initialLn
       </div>
 
       <button
+        type="button"
         onClick={handleManualLocation}
         disabled={!Number.isFinite(latitude) || !Number.isFinite(longitude)}
         className="w-full flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs border border-slate-700 transition"

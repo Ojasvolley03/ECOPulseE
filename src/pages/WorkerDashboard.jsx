@@ -71,20 +71,39 @@ export default function WorkerDashboard() {
       setVehicles(prev => prev.map(v => v.id === updatedVehicle.id ? updatedVehicle : v));
     };
 
+    const handleVehicleCreated = (newVehicle) => {
+      setVehicles(prev => prev.some(v => v.id === newVehicle.id) ? prev : [...prev, newVehicle]);
+    };
+
+    const handleVehicleDeleted = ({ id }) => {
+      setVehicles(prev => prev.filter(v => v.id !== id));
+      setSelectedVehicle(prev => prev?.id === id ? null : prev);
+    };
+
     socket.on('task_created', handleTaskChange);
     socket.on('task_assigned', handleTaskChange);
     socket.on('task_status_changed', handleTaskChange);
     socket.on('bin_updated', handleBinChange);
+    socket.on('bin_created', handleTaskChange);
+    socket.on('bin_deleted', handleTaskChange);
     socket.on('worker_alert', handleWorkerAlert);
     socket.on('vehicle_location_updated', handleVehicleChange);
+    socket.on('vehicle_updated', handleVehicleChange);
+    socket.on('vehicle_created', handleVehicleCreated);
+    socket.on('vehicle_deleted', handleVehicleDeleted);
 
     return () => {
       socket.off('task_created', handleTaskChange);
       socket.off('task_assigned', handleTaskChange);
       socket.off('task_status_changed', handleTaskChange);
       socket.off('bin_updated', handleBinChange);
+      socket.off('bin_created', handleTaskChange);
+      socket.off('bin_deleted', handleTaskChange);
       socket.off('worker_alert', handleWorkerAlert);
       socket.off('vehicle_location_updated', handleVehicleChange);
+      socket.off('vehicle_updated', handleVehicleChange);
+      socket.off('vehicle_created', handleVehicleCreated);
+      socket.off('vehicle_deleted', handleVehicleDeleted);
     };
   }, [socket]);
 

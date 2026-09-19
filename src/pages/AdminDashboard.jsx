@@ -48,6 +48,7 @@ export default function AdminDashboard({ onOpenSimulator }) {
 
   // Add Vehicle Modal State
   const [isAddVehicleModalOpen, setIsAddVehicleModalOpen] = useState(false);
+  const [isRemoveVehicleModalOpen, setIsRemoveVehicleModalOpen] = useState(false);
   const [vehicles, setVehicles] = useState([]);
   const [newVehicleId, setNewVehicleId] = useState('');
   const [newVehicleName, setNewVehicleName] = useState('');
@@ -81,7 +82,16 @@ export default function AdminDashboard({ onOpenSimulator }) {
       fetchDashboardData();
     };
 
+    const handleInventoryChange = () => {
+      fetchDashboardData();
+    };
+
     socket.on('bin_updated', handleBinUpdate);
+    socket.on('bin_created', handleInventoryChange);
+    socket.on('bin_deleted', handleInventoryChange);
+    socket.on('vehicle_created', handleInventoryChange);
+    socket.on('vehicle_updated', handleInventoryChange);
+    socket.on('vehicle_deleted', handleInventoryChange);
     socket.on('critical_alert', handleBinUpdate);
     socket.on('task_created', handleTaskUpdate);
     socket.on('task_status_changed', handleTaskUpdate);
@@ -89,6 +99,11 @@ export default function AdminDashboard({ onOpenSimulator }) {
 
     return () => {
       socket.off('bin_updated', handleBinUpdate);
+      socket.off('bin_created', handleInventoryChange);
+      socket.off('bin_deleted', handleInventoryChange);
+      socket.off('vehicle_created', handleInventoryChange);
+      socket.off('vehicle_updated', handleInventoryChange);
+      socket.off('vehicle_deleted', handleInventoryChange);
       socket.off('critical_alert', handleBinUpdate);
       socket.off('task_created', handleTaskUpdate);
       socket.off('task_status_changed', handleTaskUpdate);
@@ -205,6 +220,17 @@ export default function AdminDashboard({ onOpenSimulator }) {
     }
   };
 
+  const handleRemoveVehicle = async (vehicleId) => {
+    if (!window.confirm('Are you sure you want to permanently remove this vehicle?')) return;
+    try {
+      await api.deleteVehicle(vehicleId);
+      fetchDashboardData();
+    } catch (err) {
+      console.error('Error removing vehicle:', err);
+      alert('Failed to remove vehicle. Please try again.');
+    }
+  };
+
   if (loading || !stats) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -248,7 +274,7 @@ export default function AdminDashboard({ onOpenSimulator }) {
           </p>
         </div>
 
-        <div className="flex items-center space-x-3">
+        <div className="flex flex-wrap items-center gap-3">
           <button
             onClick={fetchDashboardData}
             className="p-2.5 rounded-xl bg-slate-800 text-slate-300 hover:text-white border border-slate-700 transition"
@@ -279,6 +305,15 @@ export default function AdminDashboard({ onOpenSimulator }) {
             <Truck className="w-4 h-4" />
             <span>Add Vehicle</span>
           </button>
+          {vehicles.length > 0 && (
+            <button
+              onClick={() => setIsRemoveVehicleModalOpen(true)}
+              className="flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-slate-800 text-rose-300 font-bold text-xs hover:bg-rose-500/20 border border-rose-500/30 transition shadow-lg"
+            >
+              <Trash className="w-4 h-4" />
+              <span>Remove Vehicle</span>
+            </button>
+          )}
           <button
             onClick={onOpenSimulator}
             className="flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 text-slate-950 font-bold text-xs hover:from-emerald-500 hover:to-teal-400 transition shadow-lg"
@@ -679,6 +714,50 @@ export default function AdminDashboard({ onOpenSimulator }) {
           <div className="pt-4 border-t border-slate-800 flex items-center justify-end">
             <button
               onClick={() => setIsRemoveBinModalOpen(false)}
+              className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:bg-slate-800"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Remove Vehicle Modal */}
+      <Modal
+        isOpen={isRemoveVehicleModalOpen}
+        onClose={() => setIsRemoveVehicleModalOpen(false)}
+        title="Remove Vehicle"
+      >
+        <div className="space-y-4">
+          <p className="text-xs text-slate-400">
+            Select a vehicle to permanently remove from the fleet. This action cannot be undone.
+          </p>
+
+          <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+            {vehicles.map((vehicle) => (
+              <div
+                key={vehicle.id}
+                className="p-3 bg-slate-950 hover:bg-rose-500/10 border border-slate-800 hover:border-rose-500/40 rounded-xl flex items-center justify-between text-xs transition"
+              >
+                <div>
+                  <span className="font-mono font-bold text-sky-300">{vehicle.vehicle_id}</span>
+                  <p className="text-[11px] text-slate-400">{vehicle.name} • {vehicle.plate}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveVehicle(vehicle.id)}
+                  className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-semibold text-xs transition"
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <div className="pt-4 border-t border-slate-800 flex items-center justify-end">
+            <button
+              type="button"
+              onClick={() => setIsRemoveVehicleModalOpen(false)}
               className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:bg-slate-800"
             >
               Close

@@ -39,7 +39,7 @@ export default function Sidebar() {
               Smart Waste Portals
             </p>
             <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-bold border border-emerald-500/20">
-              Demo Active
+              Live Data
             </span>
           </div>
 
