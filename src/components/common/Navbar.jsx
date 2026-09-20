@@ -2,13 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useSocket } from '../../context/SocketContext';
 import { api } from '../../services/api';
-import { Trash2, Bell, Cpu, LogOut, User, Radio, AlertTriangle } from 'lucide-react';
+import Modal from './Modal';
+import { Trash2, Bell, Cpu, LogOut, Radio, AlertTriangle, KeyRound, Mail, Lock, ShieldCheck } from 'lucide-react';
 
 export default function Navbar({ onOpenSimulator }) {
-  const { user, logout } = useAuth();
+  const { user, logout, changeAdminCredentials } = useAuth();
   const { connected, liveAlerts, dismissAlert } = useSocket();
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showCredentialModal, setShowCredentialModal] = useState(false);
+  const [credentialForm, setCredentialForm] = useState({ currentPassword: '', email: user?.email || '', newPassword: '', confirmPassword: '' });
+  const [credentialMessage, setCredentialMessage] = useState('');
+  const [credentialError, setCredentialError] = useState('');
+  const [credentialLoading, setCredentialLoading] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -37,6 +43,33 @@ export default function Navbar({ onOpenSimulator }) {
   };
 
   const unreadCount = notifications.filter(n => !n.read_status).length;
+
+  const openCredentialModal = () => {
+    setCredentialForm({ currentPassword: '', email: user?.email || '', newPassword: '', confirmPassword: '' });
+    setCredentialMessage('');
+    setCredentialError('');
+    setShowCredentialModal(true);
+  };
+
+  const handleCredentialSubmit = async (event) => {
+    event.preventDefault();
+    setCredentialError('');
+    setCredentialMessage('');
+    if (credentialForm.newPassword !== credentialForm.confirmPassword) {
+      setCredentialError('New passwords do not match.');
+      return;
+    }
+    setCredentialLoading(true);
+    try {
+      await changeAdminCredentials(credentialForm);
+      setCredentialMessage('Credentials updated. Your new sign-in is active.');
+      setCredentialForm(prev => ({ ...prev, currentPassword: '', newPassword: '', confirmPassword: '' }));
+    } catch (err) {
+      setCredentialError(err.message || 'Unable to update credentials.');
+    } finally {
+      setCredentialLoading(false);
+    }
+  };
 
   return (
     <header className="bg-slate-900/90 backdrop-blur border-b border-slate-800 sticky top-0 z-40">
@@ -74,6 +107,12 @@ export default function Navbar({ onOpenSimulator }) {
               <Cpu className="w-4 h-4" />
               <span>SENSOR SIMULATOR</span>
             </button>
+
+            {user?.role === 'ADMIN' && (
+              <button onClick={openCredentialModal} title="Change admin credentials" className="p-2 rounded-lg text-slate-400 hover:text-emerald-400 hover:bg-slate-800 transition-colors">
+                <KeyRound className="w-4 h-4" />
+              </button>
+            )}
 
             {/* Notifications Menu */}
             <div className="relative">
@@ -174,6 +213,19 @@ export default function Navbar({ onOpenSimulator }) {
           </button>
         </div>
       )}
+
+      <Modal isOpen={showCredentialModal} onClose={() => setShowCredentialModal(false)} title="Change Admin Credentials" maxWidth="max-w-md">
+        <form onSubmit={handleCredentialSubmit} className="space-y-4">
+          <div className="flex items-start gap-3 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-200"><ShieldCheck className="w-4 h-4 shrink-0 text-emerald-400" /><span>Your current password is required to confirm this security change.</span></div>
+          {credentialError && <p className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-300">{credentialError}</p>}
+          {credentialMessage && <p className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-300">{credentialMessage}</p>}
+          <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">Admin Email<div className="relative mt-1"><Mail className="absolute left-3 top-3 h-4 w-4 text-slate-500" /><input type="email" required value={credentialForm.email} onChange={e => setCredentialForm({ ...credentialForm, email: e.target.value })} className="w-full pl-10 pr-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 text-sm focus:outline-none focus:border-emerald-500" /></div></label>
+          <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">Current Password<div className="relative mt-1"><Lock className="absolute left-3 top-3 h-4 w-4 text-slate-500" /><input type="password" required value={credentialForm.currentPassword} onChange={e => setCredentialForm({ ...credentialForm, currentPassword: e.target.value })} className="w-full pl-10 pr-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 text-sm focus:outline-none focus:border-emerald-500" /></div></label>
+          <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">New Password<div className="relative mt-1"><Lock className="absolute left-3 top-3 h-4 w-4 text-slate-500" /><input type="password" required minLength={8} value={credentialForm.newPassword} onChange={e => setCredentialForm({ ...credentialForm, newPassword: e.target.value })} className="w-full pl-10 pr-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 text-sm focus:outline-none focus:border-emerald-500" /></div></label>
+          <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">Confirm New Password<input type="password" required minLength={8} value={credentialForm.confirmPassword} onChange={e => setCredentialForm({ ...credentialForm, confirmPassword: e.target.value })} className="w-full mt-1 px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 text-sm focus:outline-none focus:border-emerald-500" /></label>
+          <button type="submit" disabled={credentialLoading} className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-emerald-500 text-slate-950 text-xs font-bold hover:bg-emerald-400 disabled:opacity-50"><KeyRound className="w-4 h-4" />{credentialLoading ? 'Updating...' : 'Update Credentials'}</button>
+        </form>
+      </Modal>
     </header>
   );
 }

@@ -38,6 +38,26 @@ export const AuthProvider = ({ children }) => {
     throw new Error(res.message || 'Login failed.');
   };
 
+  const setupAdmin = async (email, password) => {
+    const res = await api.setupAdmin({ email, password });
+    if (res.success && res.token) {
+      setAuthToken(res.token);
+      setUser(res.user);
+      return res;
+    }
+    throw new Error(res.message || 'Admin setup failed.');
+  };
+
+  const changeAdminCredentials = async (credentials) => {
+    const res = await api.changeAdminCredentials(credentials);
+    if (res.success && res.token) {
+      setAuthToken(res.token);
+      setUser(res.user);
+      return res;
+    }
+    throw new Error(res.message || 'Credential update failed.');
+  };
+
   const register = async (userData) => {
     const res = await api.register(userData);
     if (res.success && res.token) {
@@ -54,7 +74,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, loading, login, setupAdmin, changeAdminCredentials, register, logout, isAuthenticated: !!user }}>
       {children}
     </AuthContext.Provider>
   );
