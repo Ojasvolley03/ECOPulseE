@@ -18,6 +18,7 @@ import TasksPage from './pages/TasksPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import PublicBinPage from './pages/PublicBinPage';
 import HomePage from './pages/HomePage';
+import AdminDepartmentPage from './pages/AdminDepartmentPage';
 
 import { api } from './services/api';
 import { RefreshCw } from 'lucide-react';
@@ -145,6 +146,7 @@ export default function App() {
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<HomePage />} />
+            <Route path="/admin-department" element={<AdminDepartmentPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/bin/:binCode" element={<PublicBinPage />} />

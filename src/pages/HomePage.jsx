@@ -6,7 +6,7 @@ const departments = [
   {
     label: 'Admin',
     description: 'Monitor the city-wide operation, assets and live performance.',
-    to: '/dashboard',
+    to: '/admin-department',
     icon: ShieldCheck,
     accent: 'emerald',
   },

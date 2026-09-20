@@ -23,6 +23,7 @@ import {
   Flame, 
   Plus, 
   ShieldAlert,
+  ArrowLeft,
   ArrowUpRight,
   MapPin,
   Trash,
@@ -282,6 +283,13 @@ export default function AdminDashboard({ onOpenSimulator }) {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
+          <Link
+            to="/admin-department"
+            className="flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 font-bold text-xs hover:bg-slate-700 transition"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Back</span>
+          </Link>
           <button
             onClick={fetchDashboardData}
             className="p-2.5 rounded-xl bg-slate-800 text-slate-300 hover:text-white border border-slate-700 transition"
