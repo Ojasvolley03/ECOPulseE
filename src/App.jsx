@@ -46,10 +46,16 @@ function ProtectedRoute({ children, requiredRole = null }) {
 function MainLayout() {
   const [isSimulatorOpen, setIsSimulatorOpen] = useState(false);
   const [bins, setBins] = useState([]);
+  const { user, loading: authLoading, openAdminWorkspace } = useAuth();
 
   useEffect(() => {
+    if (authLoading) return;
+    if (user?.role !== 'ADMIN') {
+      openAdminWorkspace().catch((err) => console.error('Error opening admin workspace:', err));
+      return;
+    }
     fetchBins();
-  }, []);
+  }, [authLoading, user?.role]);
 
   const fetchBins = async () => {
     try {
@@ -69,31 +75,11 @@ function MainLayout() {
         <main className="flex-1 p-4 sm:p-6 overflow-y-auto max-w-7xl mx-auto w-full">
           <Routes>
             {/* Core Direct Clean Routes (No forced login for demo) */}
-            <Route path="/dashboard" element={
-              <ProtectedRoute requiredRole="ADMIN">
-                <AdminDashboard onOpenSimulator={() => { fetchBins(); setIsSimulatorOpen(true); }} />
-              </ProtectedRoute>
-            } />
-            <Route path="/bins" element={
-              <ProtectedRoute requiredRole="ADMIN">
-                <BinManagementPage onOpenSimulator={() => { fetchBins(); setIsSimulatorOpen(true); }} />
-              </ProtectedRoute>
-            } />
-            <Route path="/complaints" element={
-              <ProtectedRoute requiredRole="ADMIN">
-                <ComplaintsPage />
-              </ProtectedRoute>
-            } />
-            <Route path="/tasks" element={
-              <ProtectedRoute requiredRole="ADMIN">
-                <TasksPage />
-              </ProtectedRoute>
-            } />
-            <Route path="/analytics" element={
-              <ProtectedRoute requiredRole="ADMIN">
-                <AnalyticsPage />
-              </ProtectedRoute>
-            } />
+            <Route path="/dashboard" element={<AdminDashboard onOpenSimulator={() => { fetchBins(); setIsSimulatorOpen(true); }} />} />
+            <Route path="/bins" element={<BinManagementPage onOpenSimulator={() => { fetchBins(); setIsSimulatorOpen(true); }} />} />
+            <Route path="/complaints" element={<ComplaintsPage />} />
+            <Route path="/tasks" element={<TasksPage />} />
+            <Route path="/analytics" element={<AnalyticsPage />} />
 
             {/* Collection Worker Dashboard & Live Smart Route */}
             <Route path="/collections" element={

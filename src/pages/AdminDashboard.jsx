@@ -8,6 +8,7 @@ import Modal from '../components/common/Modal';
 import LocationPicker from '../components/common/LocationPicker';
 import { StatusBadge, PriorityBadge, TaskStatusBadge } from '../components/common/Badge';
 import { api } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 import { 
   Trash2, 
@@ -62,10 +63,16 @@ export default function AdminDashboard({ onOpenSimulator }) {
   const [newVehicleFuel, setNewVehicleFuel] = useState(100);
 
   const { socket } = useSocket();
+  const { user, loading: authLoading, openAdminWorkspace } = useAuth();
 
   useEffect(() => {
+    if (authLoading) return;
+    if (user?.role !== 'ADMIN') {
+      openAdminWorkspace().catch((err) => console.error('Error opening admin workspace:', err));
+      return;
+    }
     fetchDashboardData();
-  }, []);
+  }, [authLoading, user?.role]);
 
   useEffect(() => {
     if (!socket) return;

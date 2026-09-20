@@ -1,25 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { api } from '../services/api';
-import { Trash2, Lock, Mail, ArrowRight, ShieldCheck, ShieldAlert } from 'lucide-react';
+import { Trash2, Lock, Mail, ArrowRight, ShieldAlert } from 'lucide-react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [setupRequired, setSetupRequired] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const { login, setupAdmin } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    api.getAdminStatus()
-      .then((res) => setSetupRequired(res.setupRequired))
-      .catch(() => setError('Unable to verify Admin Portal setup. Please try again.'));
-  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -27,10 +18,7 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      if (setupRequired && password !== confirmPassword) {
-        throw new Error('Passwords do not match.');
-      }
-      const res = setupRequired ? await setupAdmin(email, password) : await login(email, password);
+      const res = await login(email, password);
       const user = res.user;
       if (user.role === 'ADMIN') navigate('/dashboard');
       else if (user.role === 'WORKER') navigate('/collections');
@@ -52,8 +40,8 @@ export default function LoginPage() {
         <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-400 shadow-xl shadow-emerald-950">
           <Trash2 className="w-9 h-9 text-slate-950 font-black" />
         </div>
-        <h2 className="text-3xl font-extrabold text-slate-100 tracking-tight">{setupRequired ? 'Secure Admin Setup' : 'EcoPulse Admin Portal'}</h2>
-        <p className="text-xs text-slate-400">{setupRequired ? 'Create the credentials you will use for this portal.' : 'Sign in with your saved administrator credentials.'}</p>
+        <h2 className="text-3xl font-extrabold text-slate-100 tracking-tight">EcoPulse Sign In</h2>
+        <p className="text-xs text-slate-400">Sign in to access your EcoPulse workspace.</p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10">
@@ -105,27 +93,15 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {setupRequired && (
-              <div>
-                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Confirm Password</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><Lock className="h-4 w-4 text-slate-500" /></div>
-                  <input type="password" required minLength={8} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="block w-full pl-10 pr-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:border-emerald-500 font-mono" placeholder="Re-enter your password" />
-                </div>
-              </div>
-            )}
-
             <button
               type="submit"
               disabled={loading}
               className="w-full flex justify-center items-center space-x-2 py-3 px-4 rounded-xl text-xs font-bold bg-gradient-to-r from-emerald-600 to-teal-500 text-slate-950 hover:from-emerald-500 hover:to-teal-400 transition shadow-lg disabled:opacity-50"
             >
-              <span>{loading ? (setupRequired ? 'Securing Portal...' : 'Authenticating...') : (setupRequired ? 'Save Admin Credentials' : 'Sign In to Portal')}</span>
+              <span>{loading ? 'Authenticating...' : 'Sign In'}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </form>
-
-          {!setupRequired && <div className="mt-6 pt-6 border-t border-slate-800 flex items-center gap-2 text-[11px] text-slate-500"><ShieldCheck className="w-4 h-4 text-emerald-400" /> Admin credentials are stored securely on the server.</div>}
 
           <div className="mt-6 text-center">
             <p className="text-xs text-slate-400">

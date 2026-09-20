@@ -55,6 +55,21 @@ export async function getAdminStatus(req, res) {
   }
 }
 
+export async function getPublicAdminAccess(req, res) {
+  try {
+    const admin = await queryOne("SELECT id, name, email, phone, role FROM users WHERE role = 'ADMIN' LIMIT 1");
+    if (!admin) {
+      return res.status(503).json({ success: false, message: 'Admin workspace is not initialized.' });
+    }
+
+    const token = jwt.sign(admin, JWT_SECRET, { expiresIn: '7d' });
+    res.json({ success: true, token, user: admin });
+  } catch (err) {
+    console.error('Public admin access error:', err);
+    res.status(500).json({ success: false, message: 'Server error opening admin workspace.' });
+  }
+}
+
 export async function setupAdmin(req, res) {
   try {
     const { email, password } = req.body;
