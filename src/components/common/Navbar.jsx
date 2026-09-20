@@ -51,11 +51,7 @@ export default function Navbar({ onOpenSimulator }) {
             <div>
               <div className="flex items-center space-x-2">
                 <span className="text-xl font-extrabold tracking-tight text-slate-100">EcoPulse</span>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-semibold border border-emerald-500/20">
-                  SMART WASTE v1.0
-                </span>
               </div>
-              <p className="text-[10px] text-slate-400 font-medium tracking-wide uppercase">Real-Time Waste Management Platform</p>
             </div>
           </div>
 

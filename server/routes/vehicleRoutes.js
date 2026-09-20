@@ -1,14 +1,14 @@
 import express from 'express';
 import { getVehicles, createVehicle, updateVehicle, deleteVehicle, updateVehicleLocation, getOptimizedRoute } from '../controllers/vehicleController.js';
-import { optionalAuth } from '../middleware/authMiddleware.js';
+import { authenticateToken, requireRole } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-router.get('/', getVehicles);
-router.get('/route', getOptimizedRoute);
-router.post('/', optionalAuth, createVehicle);
-router.put('/:id', optionalAuth, updateVehicle);
-router.delete('/:id', optionalAuth, deleteVehicle);
-router.put('/:id/location', updateVehicleLocation);
+router.get('/', authenticateToken, requireRole('ADMIN'), getVehicles);
+router.get('/route', authenticateToken, requireRole('ADMIN'), getOptimizedRoute);
+router.post('/', authenticateToken, requireRole('ADMIN'), createVehicle);
+router.put('/:id', authenticateToken, requireRole('ADMIN'), updateVehicle);
+router.delete('/:id', authenticateToken, requireRole('ADMIN'), deleteVehicle);
+router.put('/:id/location', authenticateToken, requireRole('ADMIN', 'WORKER'), updateVehicleLocation);
 
 export default router;

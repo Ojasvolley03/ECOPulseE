@@ -1,12 +1,12 @@
 import express from 'express';
 import { createComplaint, getComplaints, updateComplaintStatus } from '../controllers/complaintController.js';
-import { optionalAuth } from '../middleware/authMiddleware.js';
+import { authenticateToken, optionalAuth, requireRole } from '../middleware/authMiddleware.js';
 import { upload } from '../middleware/uploadMiddleware.js';
 
 const router = express.Router();
 
-router.get('/', optionalAuth, getComplaints);
+router.get('/', authenticateToken, requireRole('ADMIN', 'WORKER'), getComplaints);
 router.post('/', optionalAuth, upload.single('image'), createComplaint);
-router.put('/:id/status', optionalAuth, updateComplaintStatus);
+router.put('/:id/status', authenticateToken, requireRole('ADMIN', 'WORKER'), updateComplaintStatus);
 
 export default router;

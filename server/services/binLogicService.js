@@ -1,5 +1,5 @@
 import { query, queryOne, execute } from '../config/db.js';
-import { getSocketIO } from './socketService.js';
+import { emitToRole, getSocketIO } from './socketService.js';
 
 /**
  * Calculates bin status based on fill level:
@@ -93,14 +93,14 @@ export async function processBinReading(binId, fillLevel, temperature = 25.0, ba
         task: createdTask
       };
 
-      io.emit('worker_alert', alertPayload);
-      io.emit('critical_alert', {
+      emitToRole('WORKER', 'worker_alert', alertPayload);
+      emitToRole('ADMIN', 'critical_alert', {
         bin: updatedBin,
         task: createdTask,
         message: alertMessage
       });
       if (createdTask) {
-        io.emit('task_created', createdTask);
+        emitToRole('ADMIN', 'task_created', createdTask);
       }
     }
   }

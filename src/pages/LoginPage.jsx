@@ -59,8 +59,7 @@ export default function LoginPage() {
         <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-400 shadow-xl shadow-emerald-950">
           <Trash2 className="w-9 h-9 text-slate-950 font-black" />
         </div>
-        <h2 className="text-3xl font-extrabold text-slate-100 tracking-tight">EcoPulse Platform</h2>
-        <p className="text-xs text-slate-400">Real-Time Smart Waste Collection & Management</p>
+        <h2 className="text-3xl font-extrabold text-slate-100 tracking-tight">EcoPulse</h2>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10">

@@ -21,8 +21,8 @@ import PublicBinPage from './pages/PublicBinPage';
 import { api } from './services/api';
 import { RefreshCw } from 'lucide-react';
 
-function ProtectedRoute({ children }) {
-  const { loading } = useAuth();
+function ProtectedRoute({ children, requiredRole = null }) {
+  const { user, loading } = useAuth();
 
   if (loading) {
     return (
@@ -32,7 +32,14 @@ function ProtectedRoute({ children }) {
     );
   }
 
-  // Demo access: Allow seamless viewing without forced login
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (requiredRole && user.role !== requiredRole && user.role !== 'ADMIN') {
+    return <Navigate to="/login" replace />;
+  }
+
   return children;
 }
 
@@ -63,47 +70,47 @@ function MainLayout() {
           <Routes>
             {/* Core Direct Clean Routes (No forced login for demo) */}
             <Route path="/dashboard" element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredRole="ADMIN">
                 <AdminDashboard onOpenSimulator={() => { fetchBins(); setIsSimulatorOpen(true); }} />
               </ProtectedRoute>
             } />
             <Route path="/bins" element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredRole="ADMIN">
                 <BinManagementPage onOpenSimulator={() => { fetchBins(); setIsSimulatorOpen(true); }} />
               </ProtectedRoute>
             } />
             <Route path="/complaints" element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredRole="ADMIN">
                 <ComplaintsPage />
               </ProtectedRoute>
             } />
             <Route path="/tasks" element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredRole="ADMIN">
                 <TasksPage />
               </ProtectedRoute>
             } />
             <Route path="/analytics" element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredRole="ADMIN">
                 <AnalyticsPage />
               </ProtectedRoute>
             } />
 
             {/* Collection Worker Dashboard & Live Smart Route */}
             <Route path="/collections" element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredRole="WORKER">
                 <WorkerDashboard />
               </ProtectedRoute>
             } />
             <Route path="/history" element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredRole="WORKER">
                 <WorkerDashboard />
               </ProtectedRoute>
             } />
 
             {/* Citizen Complaint & Smart Bins Portal */}
-            <Route path="/citizen" element={<CitizenDashboard />} />
-            <Route path="/report" element={<CitizenDashboard />} />
-            <Route path="/my-complaints" element={<CitizenDashboard />} />
+            <Route path="/citizen" element={<ProtectedRoute requiredRole="CITIZEN"><CitizenDashboard /></ProtectedRoute>} />
+            <Route path="/report" element={<ProtectedRoute requiredRole="CITIZEN"><CitizenDashboard /></ProtectedRoute>} />
+            <Route path="/my-complaints" element={<ProtectedRoute requiredRole="CITIZEN"><CitizenDashboard /></ProtectedRoute>} />
 
             {/* Public Smart Bin QR Code Page */}
             <Route path="/bin/:binCode" element={<PublicBinPage />} />
