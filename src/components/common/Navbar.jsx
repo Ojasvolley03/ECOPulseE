@@ -147,11 +147,7 @@ export default function Navbar({ onOpenSimulator }) {
                 >
                   <LogOut className="w-4 h-4" />
                 </button>
-              ) : (
-                <a href="/login" className="text-xs px-3 py-1.5 rounded-lg bg-slate-800 text-slate-200 hover:bg-slate-700 transition">
-                  Login
-                </a>
-              )}
+              ) : null}
             </div>
           </div>
 

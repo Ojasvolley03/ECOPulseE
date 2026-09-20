@@ -7,7 +7,6 @@ import Navbar from './components/common/Navbar';
 import Sidebar from './components/common/Sidebar';
 import SensorSimulatorModal from './components/simulator/SensorSimulatorModal';
 
-import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import AdminDashboard from './pages/AdminDashboard';
 import CitizenDashboard from './pages/CitizenDashboard';
@@ -35,11 +34,11 @@ function ProtectedRoute({ children, requiredRole = null }) {
   }
 
   if (!user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/" replace />;
   }
 
   if (requiredRole && user.role !== requiredRole && user.role !== 'ADMIN') {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/" replace />;
   }
 
   return children;
@@ -147,7 +146,6 @@ export default function App() {
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/admin-department" element={<AdminDepartmentPage />} />
-            <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/bin/:binCode" element={<PublicBinPage />} />
             <Route path="/*" element={<MainLayout />} />

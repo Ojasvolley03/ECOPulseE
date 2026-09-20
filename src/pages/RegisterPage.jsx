@@ -156,9 +156,9 @@ export default function RegisterPage() {
 
           <div className="mt-6 text-center">
             <p className="text-xs text-slate-400">
-              Already have an account?{' '}
-              <Link to="/login" className="font-bold text-emerald-400 hover:text-emerald-300 underline">
-                Sign In
+              Need to choose a department?{' '}
+              <Link to="/" className="font-bold text-emerald-400 hover:text-emerald-300 underline">
+                Back to departments
               </Link>
             </p>
           </div>
