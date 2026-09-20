@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from 'react-leaflet';
 import { MapPin, Search, X } from 'lucide-react';
 
-const DEFAULT_MAP_CENTER = [20, 0];
+const DEFAULT_MAP_CENTER = [20.5937, 78.9629];
 
 function PickerMap({ position, onMapLocationSelect }) {
   const map = useMap();
@@ -249,7 +249,7 @@ export default function LocationPicker({ onLocationSelect, initialLat, initialLn
         <div className="h-52 overflow-hidden rounded-xl border border-slate-800">
           <MapContainer
             center={selectedPosition || DEFAULT_MAP_CENTER}
-            zoom={selectedPosition ? 13 : 2}
+            zoom={selectedPosition ? 13 : 5}
             scrollWheelZoom={true}
             className="w-full h-full"
           >

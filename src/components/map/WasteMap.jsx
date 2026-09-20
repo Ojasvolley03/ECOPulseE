@@ -144,13 +144,13 @@ export default function WasteMap({
   height = 'h-[500px]',
   selectedLocation = null
 }) {
-  const defaultCenter = selectedLocation || (bins.length > 0 ? [bins[0].latitude, bins[0].longitude] : [20, 0]);
+  const defaultCenter = selectedLocation || (bins.length > 0 ? [bins[0].latitude, bins[0].longitude] : [20.5937, 78.9629]);
 
   return (
     <div className={`w-full ${height} rounded-2xl overflow-hidden border border-slate-800 shadow-xl relative z-10`}>
       <MapContainer
         center={defaultCenter}
-        zoom={13}
+        zoom={bins.length > 0 ? 13 : 5}
         scrollWheelZoom={true}
         className="w-full h-full"
       >
