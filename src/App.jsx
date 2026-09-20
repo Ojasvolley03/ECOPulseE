@@ -17,6 +17,7 @@ import ComplaintsPage from './pages/ComplaintsPage';
 import TasksPage from './pages/TasksPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import PublicBinPage from './pages/PublicBinPage';
+import HomePage from './pages/HomePage';
 
 import { api } from './services/api';
 import { RefreshCw } from 'lucide-react';
@@ -143,6 +144,7 @@ export default function App() {
       <SocketProvider>
         <BrowserRouter>
           <Routes>
+            <Route path="/" element={<HomePage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/bin/:binCode" element={<PublicBinPage />} />
