@@ -2,7 +2,7 @@ import { query, execute } from '../config/db.js';
 
 export async function getNotifications(req, res) {
   try {
-    const userId = req.user ? req.user.id : null;
+    const userId = req.user.id;
 
     const sql = `
       SELECT * FROM notifications

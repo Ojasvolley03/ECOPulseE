@@ -63,14 +63,10 @@ export default function AdminDashboard({ onOpenSimulator }) {
   const [newVehicleFuel, setNewVehicleFuel] = useState(100);
 
   const { socket } = useSocket();
-  const { user, loading: authLoading, openAdminWorkspace } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
   useEffect(() => {
     if (authLoading) return;
-    if (user?.role !== 'ADMIN') {
-      openAdminWorkspace().catch((err) => console.error('Error opening admin workspace:', err));
-      return;
-    }
     fetchDashboardData();
   }, [authLoading, user?.role]);
 

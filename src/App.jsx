@@ -19,6 +19,8 @@ import AnalyticsPage from './pages/AnalyticsPage';
 import PublicBinPage from './pages/PublicBinPage';
 import HomePage from './pages/HomePage';
 import AdminDepartmentPage from './pages/AdminDepartmentPage';
+import LoginPage from './pages/LoginPage';
+import SetupAdminPage from './pages/SetupAdminPage';
 
 import { api } from './services/api';
 import { RefreshCw } from 'lucide-react';
@@ -35,7 +37,7 @@ function ProtectedRoute({ children, requiredRole = null }) {
   }
 
   if (!user) {
-    return <Navigate to="/" replace />;
+    return children;
   }
 
   if (requiredRole && user.role !== requiredRole && user.role !== 'ADMIN') {
@@ -48,15 +50,11 @@ function ProtectedRoute({ children, requiredRole = null }) {
 function MainLayout() {
   const [isSimulatorOpen, setIsSimulatorOpen] = useState(false);
   const [bins, setBins] = useState([]);
-  const { user, loading: authLoading, openAdminWorkspace } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
   useEffect(() => {
     if (authLoading) return;
-    if (user?.role !== 'ADMIN') {
-      openAdminWorkspace().catch((err) => console.error('Error opening admin workspace:', err));
-      return;
-    }
-    fetchBins();
+    if (user?.role === 'ADMIN') fetchBins();
   }, [authLoading, user?.role]);
 
   const fetchBins = async () => {
@@ -77,11 +75,11 @@ function MainLayout() {
         <main className="flex-1 p-4 sm:p-6 overflow-y-auto max-w-7xl mx-auto w-full">
           <Routes>
             {/* Core Direct Clean Routes (No forced login for demo) */}
-            <Route path="/dashboard" element={<AdminDashboard onOpenSimulator={() => { fetchBins(); setIsSimulatorOpen(true); }} />} />
-            <Route path="/bins" element={<BinManagementPage onOpenSimulator={() => { fetchBins(); setIsSimulatorOpen(true); }} />} />
-            <Route path="/complaints" element={<ComplaintsPage />} />
-            <Route path="/tasks" element={<TasksPage />} />
-            <Route path="/analytics" element={<AnalyticsPage />} />
+            <Route path="/dashboard" element={<ProtectedRoute requiredRole="ADMIN"><AdminDashboard onOpenSimulator={() => { fetchBins(); setIsSimulatorOpen(true); }} /></ProtectedRoute>} />
+            <Route path="/bins" element={<ProtectedRoute requiredRole="ADMIN"><BinManagementPage onOpenSimulator={() => { fetchBins(); setIsSimulatorOpen(true); }} /></ProtectedRoute>} />
+            <Route path="/complaints" element={<ProtectedRoute requiredRole="ADMIN"><ComplaintsPage /></ProtectedRoute>} />
+            <Route path="/tasks" element={<ProtectedRoute requiredRole="ADMIN"><TasksPage /></ProtectedRoute>} />
+            <Route path="/analytics" element={<ProtectedRoute requiredRole="ADMIN"><AnalyticsPage /></ProtectedRoute>} />
 
             {/* Collection Worker Dashboard & Live Smart Route */}
             <Route path="/collections" element={
@@ -139,6 +137,32 @@ function MainLayout() {
   );
 }
 
+function GuestAccessBootstrap({ children }) {
+  const location = useLocation();
+  const { user, loading, openGuestAccess } = useAuth();
+  const [guestLoading, setGuestLoading] = useState(false);
+
+  const role = location.pathname.startsWith('/collections') || location.pathname.startsWith('/history')
+    ? 'WORKER'
+    : location.pathname.startsWith('/citizen') || location.pathname.startsWith('/report') || location.pathname.startsWith('/my-complaints')
+      ? 'CITIZEN'
+      : location.pathname.startsWith('/dashboard') || location.pathname.startsWith('/bins') || location.pathname.startsWith('/complaints') || location.pathname.startsWith('/tasks') || location.pathname.startsWith('/analytics')
+        ? 'ADMIN'
+        : null;
+
+  useEffect(() => {
+    if (loading || guestLoading || !role || (user?.guest && user.role === role)) return;
+    setGuestLoading(true);
+    openGuestAccess(role).catch((error) => console.error('Guest access unavailable:', error)).finally(() => setGuestLoading(false));
+  }, [loading, user, location.pathname, guestLoading, openGuestAccess]);
+
+  if (guestLoading || (role && (!user?.guest || user.role !== role))) {
+    return <div className="min-h-screen bg-slate-950" />;
+  }
+
+  return children;
+}
+
 export default function App() {
   const [showLaunchScreen, setShowLaunchScreen] = useState(true);
 
@@ -146,17 +170,21 @@ export default function App() {
     <AuthProvider>
       <SocketProvider>
         <BrowserRouter>
-          {showLaunchScreen ? (
-            <LaunchScreen onOpen={() => setShowLaunchScreen(false)} />
-          ) : (
-            <Routes>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/admin-department" element={<AdminDepartmentPage />} />
-              <Route path="/register" element={<RegisterPage />} />
-              <Route path="/bin/:binCode" element={<PublicBinPage />} />
-              <Route path="/*" element={<MainLayout />} />
-            </Routes>
-          )}
+          <GuestAccessBootstrap>
+            {showLaunchScreen ? (
+              <LaunchScreen onOpen={() => setShowLaunchScreen(false)} />
+            ) : (
+              <Routes>
+                <Route path="/" element={<HomePage />} />
+                <Route path="/admin-department" element={<AdminDepartmentPage />} />
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/setup-admin" element={<SetupAdminPage />} />
+                <Route path="/register" element={<RegisterPage />} />
+                <Route path="/bin/:binCode" element={<PublicBinPage />} />
+                <Route path="/*" element={<MainLayout />} />
+              </Routes>
+            )}
+          </GuestAccessBootstrap>
         </BrowserRouter>
       </SocketProvider>
     </AuthProvider>

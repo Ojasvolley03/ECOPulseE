@@ -1,4 +1,4 @@
-import { query } from '../config/db.js';
+import { query, queryOne } from '../config/db.js';
 import { processBinReading } from '../services/binLogicService.js';
 
 export async function addSensorReading(req, res) {
@@ -39,9 +39,23 @@ export async function getSensorReadings(req, res) {
     `;
     const params = [];
 
+    if (req.user.role === 'WORKER' && bin_id) {
+      const assignment = await queryOne(
+        "SELECT id FROM collection_tasks WHERE bin_id = ? AND worker_id = ? AND status != 'COMPLETED'",
+        [bin_id, req.user.id]
+      );
+      if (!assignment) return res.status(403).json({ success: false, message: 'Bin is not assigned to this worker.' });
+    }
+
     if (bin_id) {
       sql += ' WHERE sr.bin_id = ?';
       params.push(bin_id);
+    } else if (req.user.role === 'WORKER') {
+      sql += ` WHERE EXISTS (
+        SELECT 1 FROM collection_tasks ct
+        WHERE ct.bin_id = sr.bin_id AND ct.worker_id = ? AND ct.status != 'COMPLETED'
+      )`;
+      params.push(req.user.id);
     }
 
     sql += ' ORDER BY sr.reading_time DESC LIMIT ?';

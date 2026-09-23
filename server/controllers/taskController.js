@@ -168,6 +168,10 @@ export async function updateTaskStatus(req, res) {
       return res.status(404).json({ success: false, message: 'Task not found.' });
     }
 
+    if (req.user.role === 'WORKER' && task.worker_id !== req.user.id) {
+      return res.status(403).json({ success: false, message: 'Task is not assigned to this worker.' });
+    }
+
     let completionTime = task.completion_time;
     if (status === 'COMPLETED') {
       completionTime = new Date().toISOString();

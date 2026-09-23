@@ -141,7 +141,7 @@ export default function CitizenDashboard() {
               Community Waste Reporting Portal
             </span>
             <span className="px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 text-[10px] font-bold">
-              No Login Required
+              Signed-in Citizen Access
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-100 tracking-tight mt-1">

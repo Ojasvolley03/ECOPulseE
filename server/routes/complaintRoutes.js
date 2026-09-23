@@ -5,7 +5,7 @@ import { upload } from '../middleware/uploadMiddleware.js';
 
 const router = express.Router();
 
-router.get('/', authenticateToken, requireRole('ADMIN', 'WORKER'), getComplaints);
+router.get('/', authenticateToken, requireRole('ADMIN', 'WORKER', 'CITIZEN'), getComplaints);
 router.post('/', optionalAuth, upload.single('image'), createComplaint);
 router.put('/:id/status', authenticateToken, requireRole('ADMIN', 'WORKER'), updateComplaintStatus);
 

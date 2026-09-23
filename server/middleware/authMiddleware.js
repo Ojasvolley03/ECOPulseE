@@ -1,6 +1,11 @@
+import 'dotenv/config';
 import jwt from 'jsonwebtoken';
 
-export const JWT_SECRET = process.env.JWT_SECRET || 'ecopulse_jwt_secret_key_2026';
+if (!process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET must be configured in the environment.');
+}
+
+export const JWT_SECRET = process.env.JWT_SECRET;
 
 export function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];

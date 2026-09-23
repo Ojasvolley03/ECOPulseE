@@ -55,19 +55,25 @@ export async function getAdminStatus(req, res) {
   }
 }
 
-export async function getPublicAdminAccess(req, res) {
-  try {
-    const admin = await queryOne("SELECT id, name, email, phone, role FROM users WHERE role = 'ADMIN' LIMIT 1");
-    if (!admin) {
-      return res.status(503).json({ success: false, message: 'Admin workspace is not initialized.' });
-    }
+export async function getGuestAccess(req, res) {
+  const role = String(req.query.role || '').toUpperCase();
+  const guestRoles = {
+    ADMIN: { id: -1, name: 'Guest Admin', email: 'guest-admin@ecopulse.local', role: 'ADMIN', phone: '' },
+    WORKER: { id: -2, name: 'Guest Worker', email: 'guest-worker@ecopulse.local', role: 'WORKER', phone: '' },
+    CITIZEN: { id: -3, name: 'Guest Citizen', email: 'guest-citizen@ecopulse.local', role: 'CITIZEN', phone: '' }
+  };
 
-    const token = jwt.sign(admin, JWT_SECRET, { expiresIn: '7d' });
-    res.json({ success: true, token, user: admin });
-  } catch (err) {
-    console.error('Public admin access error:', err);
-    res.status(500).json({ success: false, message: 'Server error opening admin workspace.' });
+  if (!guestRoles[role]) {
+    return res.status(400).json({ success: false, message: 'A valid guest role is required.' });
   }
+
+  const existingUser = await queryOne(
+    'SELECT id, name, email, phone, role FROM users WHERE role = ? ORDER BY id ASC LIMIT 1',
+    [role]
+  );
+  const user = { ...(existingUser || guestRoles[role]), guest: true };
+  const token = jwt.sign(user, JWT_SECRET, { expiresIn: '12h' });
+  return res.json({ success: true, token, user });
 }
 
 export async function setupAdmin(req, res) {

@@ -45,8 +45,8 @@ async function request(endpoint, options = {}) {
 export const api = {
   // Auth
   login: (credentials) => request('/auth/login', { method: 'POST', body: credentials }),
+  getGuestAccess: (role) => request(`/auth/guest-access?role=${role}`),
   getAdminStatus: () => request('/auth/admin-status'),
-  getAdminAccess: () => request('/auth/admin-access'),
   setupAdmin: (credentials) => request('/auth/setup-admin', { method: 'POST', body: credentials }),
   changeAdminCredentials: (credentials) => request('/auth/change-admin-credentials', { method: 'POST', body: credentials }),
   register: (userData) => request('/auth/register', { method: 'POST', body: userData }),

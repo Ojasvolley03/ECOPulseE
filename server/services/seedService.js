@@ -38,6 +38,25 @@ export async function initDatabaseAndSeed() {
       await execute('ALTER TABLE waste_bins ADD COLUMN alert_active INTEGER NOT NULL DEFAULT 0');
     }
 
+    const vehicleColumns = await query('PRAGMA table_info(vehicles)');
+    const vehicleFieldNames = new Set((vehicleColumns || []).map(col => col.name));
+    if (!vehicleFieldNames.has('driver_user_id')) {
+      await execute('ALTER TABLE vehicles ADD COLUMN driver_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL');
+    }
+
+    await execute(`
+      CREATE TABLE IF NOT EXISTS outbox_events (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        event_type TEXT NOT NULL,
+        aggregate_type TEXT NOT NULL,
+        aggregate_id INTEGER NOT NULL,
+        payload TEXT NOT NULL,
+        attempts INTEGER NOT NULL DEFAULT 0,
+        published_at DATETIME,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
     const legacyAdmin = await queryOne("SELECT id, password_hash FROM users WHERE email = 'admin@ecopulse.com' AND role = 'ADMIN'");
     if (legacyAdmin && await bcrypt.compare('admin123', legacyAdmin.password_hash)) {
       await execute('DELETE FROM users WHERE id = ?', [legacyAdmin.id]);

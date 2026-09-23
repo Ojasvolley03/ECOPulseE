@@ -7,6 +7,16 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const openGuestAccess = async (role) => {
+    const res = await api.getGuestAccess(role);
+    if (res.success && res.token && res.user) {
+      setAuthToken(res.token);
+      setUser(res.user);
+      return res;
+    }
+    throw new Error(res.message || 'Guest access unavailable.');
+  };
+
   useEffect(() => {
     const initAuth = async () => {
       const token = getAuthToken();
@@ -21,16 +31,6 @@ export const AuthProvider = ({ children }) => {
         } catch (err) {
           console.warn('Session expired or invalid:', err.message);
           setAuthToken(null);
-        }
-      } else {
-        try {
-          const res = await api.getAdminAccess();
-          if (res.success && res.token && res.user) {
-            setAuthToken(res.token);
-            setUser(res.user);
-          }
-        } catch (err) {
-          console.warn('Admin workspace unavailable:', err.message);
         }
       }
       setLoading(false);
@@ -56,16 +56,6 @@ export const AuthProvider = ({ children }) => {
       return res;
     }
     throw new Error(res.message || 'Admin setup failed.');
-  };
-
-  const openAdminWorkspace = async () => {
-    const res = await api.getAdminAccess();
-    if (res.success && res.token && res.user) {
-      setAuthToken(res.token);
-      setUser(res.user);
-      return res;
-    }
-    throw new Error(res.message || 'Admin workspace unavailable.');
   };
 
   const changeAdminCredentials = async (credentials) => {
@@ -94,7 +84,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, setupAdmin, openAdminWorkspace, changeAdminCredentials, register, logout, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, loading, login, setupAdmin, openGuestAccess, changeAdminCredentials, register, logout, isAuthenticated: !!user }}>
       {children}
     </AuthContext.Provider>
   );

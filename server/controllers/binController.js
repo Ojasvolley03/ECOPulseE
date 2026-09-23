@@ -5,7 +5,13 @@ import { evaluateWorkerAlert } from '../services/workerAlertService.js';
 
 export async function getBins(req, res) {
   try {
-    const bins = await query('SELECT * FROM waste_bins ORDER BY id ASC');
+    const sql = req.user?.role === 'WORKER'
+      ? `SELECT wb.* FROM waste_bins wb
+         JOIN collection_tasks ct ON ct.bin_id = wb.id
+         WHERE ct.worker_id = ? AND ct.status != 'COMPLETED'
+         GROUP BY wb.id ORDER BY wb.id ASC`
+      : 'SELECT * FROM waste_bins ORDER BY id ASC';
+    const bins = await query(sql, req.user?.role === 'WORKER' ? [req.user.id] : []);
     res.json({ success: true, count: bins.length, data: bins });
   } catch (err) {
     console.error('Error fetching bins:', err);
@@ -19,6 +25,14 @@ export async function getBinById(req, res) {
     const bin = await queryOne('SELECT * FROM waste_bins WHERE id = ?', [id]);
     if (!bin) {
       return res.status(404).json({ success: false, message: 'Waste bin not found.' });
+    }
+
+    if (req.user?.role === 'WORKER') {
+      const assignment = await queryOne(
+        "SELECT id FROM collection_tasks WHERE bin_id = ? AND worker_id = ? AND status != 'COMPLETED'",
+        [id, req.user.id]
+      );
+      if (!assignment) return res.status(403).json({ success: false, message: 'Bin is not assigned to this worker.' });
     }
 
     const readings = await query(

@@ -46,3 +46,19 @@ export const execute = (sql, params = []) => {
     });
   });
 };
+
+export async function withTransaction(work) {
+  await execute('BEGIN IMMEDIATE');
+  try {
+    const result = await work();
+    await execute('COMMIT');
+    return result;
+  } catch (error) {
+    try {
+      await execute('ROLLBACK');
+    } catch (rollbackError) {
+      console.error('Database rollback failed:', rollbackError);
+    }
+    throw error;
+  }
+}

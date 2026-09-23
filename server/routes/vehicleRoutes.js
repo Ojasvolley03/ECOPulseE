@@ -4,8 +4,8 @@ import { authenticateToken, requireRole } from '../middleware/authMiddleware.js'
 
 const router = express.Router();
 
-router.get('/', authenticateToken, requireRole('ADMIN'), getVehicles);
-router.get('/route', authenticateToken, requireRole('ADMIN'), getOptimizedRoute);
+router.get('/', authenticateToken, requireRole('ADMIN', 'WORKER'), getVehicles);
+router.get('/route', authenticateToken, requireRole('ADMIN', 'WORKER'), getOptimizedRoute);
 router.post('/', authenticateToken, requireRole('ADMIN'), createVehicle);
 router.put('/:id', authenticateToken, requireRole('ADMIN'), updateVehicle);
 router.delete('/:id', authenticateToken, requireRole('ADMIN'), deleteVehicle);

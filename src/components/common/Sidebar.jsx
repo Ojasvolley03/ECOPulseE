@@ -21,7 +21,7 @@ export default function Sidebar() {
 
   const allNavLinks = [
     { to: '/dashboard', label: 'Admin Dashboard', icon: LayoutDashboard, badge: null },
-    { to: '/collections', label: 'Worker & Smart Route', icon: Truck, badge: '75% Alert' },
+    { to: '/collections', label: 'Worker & Smart Route', icon: Truck, badge: '90% Alert' },
     { to: '/bins', label: 'Waste Bins & QR Codes', icon: QrCode, badge: null },
     { to: '/citizen', label: 'Citizen Portal & Map', icon: MapPin, badge: null },
     { to: '/report', label: 'File Citizen Complaint', icon: PlusCircle, badge: 'Public' },

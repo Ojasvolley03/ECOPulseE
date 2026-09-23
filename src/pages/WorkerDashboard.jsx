@@ -41,6 +41,24 @@ export default function WorkerDashboard() {
   }, []);
 
   useEffect(() => {
+    if (!selectedVehicle || !navigator.geolocation) return undefined;
+
+    const watchId = navigator.geolocation.watchPosition(
+      ({ coords }) => {
+        api.updateVehicleLocation(selectedVehicle.id, {
+          latitude: coords.latitude,
+          longitude: coords.longitude,
+          status: 'EN_ROUTE'
+        }).catch((error) => console.error('Error updating worker GPS position:', error));
+      },
+      (error) => console.warn('Worker GPS permission or signal unavailable:', error.message),
+      { enableHighAccuracy: true, maximumAge: 15000, timeout: 10000 }
+    );
+
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, [selectedVehicle]);
+
+  useEffect(() => {
     if (!socket) return;
 
     const handleTaskChange = () => fetchAllData();
@@ -222,7 +240,7 @@ export default function WorkerDashboard() {
               Live Dispatch & GPS Navigator
             </span>
             <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-bold">
-              Guest Access Mode (No Login Required)
+              Authenticated Worker Mode
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-100 tracking-tight mt-1 flex items-center space-x-2">

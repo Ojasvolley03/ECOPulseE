@@ -16,7 +16,9 @@ export function calculateDistanceKm(lat1, lon1, lat2, lon2) {
 
 export async function getVehicles(req, res) {
   try {
-    const vehicles = await query('SELECT * FROM vehicles ORDER BY id ASC');
+    const vehicles = req.user.role === 'WORKER'
+      ? await query('SELECT * FROM vehicles WHERE driver_user_id = ? ORDER BY id ASC', [req.user.id])
+      : await query('SELECT * FROM vehicles ORDER BY id ASC');
     res.json({
       success: true,
       count: vehicles.length,
@@ -30,7 +32,7 @@ export async function getVehicles(req, res) {
 
 export async function createVehicle(req, res) {
   try {
-    const { vehicle_id, name, plate, driver, phone, latitude, longitude, capacity_used, status, fuel_battery } = req.body;
+    const { vehicle_id, name, plate, driver, driver_user_id, phone, latitude, longitude, capacity_used, status, fuel_battery } = req.body;
 
     if (!vehicle_id || !name || !plate || latitude === undefined || longitude === undefined) {
       return res.status(400).json({ success: false, message: 'Vehicle ID, name, plate, latitude, and longitude are required.' });
@@ -41,9 +43,9 @@ export async function createVehicle(req, res) {
     const vehicleStatus = status || 'AVAILABLE';
 
     const result = await execute(`
-      INSERT INTO vehicles (vehicle_id, name, plate, driver, phone, latitude, longitude, capacity_used, status, fuel_battery, last_updated)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
-    `, [vehicle_id, name, plate, driver, phone, parseFloat(latitude), parseFloat(longitude), capacity, vehicleStatus, fuel]);
+      INSERT INTO vehicles (vehicle_id, name, plate, driver, driver_user_id, phone, latitude, longitude, capacity_used, status, fuel_battery, last_updated)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+    `, [vehicle_id, name, plate, driver, driver_user_id || null, phone, parseFloat(latitude), parseFloat(longitude), capacity, vehicleStatus, fuel]);
 
     const newVehicle = await queryOne('SELECT * FROM vehicles WHERE id = ?', [result.lastID]);
 
@@ -62,7 +64,7 @@ export async function createVehicle(req, res) {
 export async function updateVehicle(req, res) {
   try {
     const { id } = req.params;
-    const { name, plate, driver, phone, latitude, longitude, capacity_used, status, fuel_battery } = req.body;
+    const { name, plate, driver, driver_user_id, phone, latitude, longitude, capacity_used, status, fuel_battery } = req.body;
 
     const existingVehicle = await queryOne('SELECT * FROM vehicles WHERE id = ?', [id]);
     if (!existingVehicle) {
@@ -74,6 +76,7 @@ export async function updateVehicle(req, res) {
       SET name = COALESCE(?, name),
           plate = COALESCE(?, plate),
           driver = COALESCE(?, driver),
+          driver_user_id = COALESCE(?, driver_user_id),
           phone = COALESCE(?, phone),
           latitude = COALESCE(?, latitude),
           longitude = COALESCE(?, longitude),
@@ -82,7 +85,7 @@ export async function updateVehicle(req, res) {
           fuel_battery = COALESCE(?, fuel_battery),
           last_updated = datetime('now')
       WHERE id = ?
-    `, [name, plate, driver, phone, latitude, longitude, capacity_used, status, fuel_battery, id]);
+    `, [name, plate, driver, driver_user_id, phone, latitude, longitude, capacity_used, status, fuel_battery, id]);
 
     const updatedVehicle = await queryOne('SELECT * FROM vehicles WHERE id = ?', [id]);
 
@@ -129,6 +132,9 @@ export async function updateVehicleLocation(req, res) {
     if (!existingVehicle) {
       return res.status(404).json({ success: false, message: 'Vehicle not found.' });
     }
+    if (req.user.role === 'WORKER' && existingVehicle.driver_user_id !== req.user.id) {
+      return res.status(403).json({ success: false, message: 'Vehicle is not assigned to this worker.' });
+    }
 
     await execute(`
       UPDATE vehicles
@@ -173,15 +179,18 @@ export async function getOptimizedRoute(req, res) {
       SELECT wb.*, 
         (SELECT ct.id FROM collection_tasks ct WHERE ct.bin_id = wb.id AND ct.status != 'COMPLETED' LIMIT 1) as active_task_id
       FROM waste_bins wb
-      WHERE wb.fill_level >= ? OR wb.status = 'CRITICAL'
+      WHERE (wb.fill_level >= ? OR wb.status = 'CRITICAL')
+        ${req.user.role === 'WORKER' ? "AND EXISTS (SELECT 1 FROM collection_tasks worker_ct WHERE worker_ct.bin_id = wb.id AND worker_ct.worker_id = ? AND worker_ct.status != 'COMPLETED')" : ''}
       ORDER BY wb.fill_level DESC
-    `, [minFillLevel]);
+    `, req.user.role === 'WORKER' ? [minFillLevel, req.user.id] : [minFillLevel]);
 
     if (!bins || bins.length === 0) {
       // If no bins >= 75%, select top 3 highest fill bins
       const topBins = await query(`
-        SELECT * FROM waste_bins ORDER BY fill_level DESC LIMIT 3
-      `);
+        SELECT wb.* FROM waste_bins wb
+        ${req.user.role === 'WORKER' ? "JOIN collection_tasks worker_ct ON worker_ct.bin_id = wb.id AND worker_ct.worker_id = ? AND worker_ct.status != 'COMPLETED'" : ''}
+        ORDER BY wb.fill_level DESC LIMIT 3
+      `, req.user.role === 'WORKER' ? [req.user.id] : []);
       bins.push(...topBins);
     }
 

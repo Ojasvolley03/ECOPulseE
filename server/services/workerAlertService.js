@@ -1,4 +1,4 @@
-import { query, queryOne, execute } from '../config/db.js';
+import { query, queryOne, execute, withTransaction } from '../config/db.js';
 import { emitToRole } from './socketService.js';
 
 const ALERT_THRESHOLD = 90;
@@ -25,35 +25,47 @@ export async function evaluateWorkerAlert(binId) {
     return null;
   }
 
-  const claimResult = await execute(`
-    UPDATE waste_bins
-    SET alert_active = 1
-    WHERE id = ? AND fill_level > ? AND alert_active = 0
-  `, [bin.id, ALERT_THRESHOLD]);
-
-  if (!claimResult.changes) return null;
-
   const message = buildAlertMessage(bin);
-  const notificationResult = await execute(`
-    INSERT INTO notifications (user_id, title, message, type)
-    VALUES (NULL, 'Dustbin requires collection', ?, 'WORKER_CAPACITY_ALERT')
-  `, [message]);
+  const timestamp = new Date().toISOString();
+  const payload = await withTransaction(async () => {
+    const claimResult = await execute(`
+      UPDATE waste_bins
+      SET alert_active = 1
+      WHERE id = ? AND fill_level > ? AND alert_active = 0
+    `, [bin.id, ALERT_THRESHOLD]);
 
-  const payload = {
-    id: notificationResult.lastID,
-    bin_id: bin.id,
-    bin_code: bin.bin_code,
-    address: bin.address,
-    fill_level: bin.fill_level,
-    latitude: bin.latitude,
-    longitude: bin.longitude,
-    waste_type: bin.waste_type,
-    status: bin.status,
-    timestamp: new Date().toISOString(),
-    message,
-    type: 'WORKER_CAPACITY_ALERT',
-    read_status: 0
-  };
+    if (!claimResult.changes) return null;
+
+    const notificationResult = await execute(`
+      INSERT INTO notifications (user_id, title, message, type)
+      VALUES (NULL, 'Dustbin requires collection', ?, 'WORKER_CAPACITY_ALERT')
+    `, [message]);
+
+    const alertPayload = {
+      id: notificationResult.lastID,
+      bin_id: bin.id,
+      bin_code: bin.bin_code,
+      address: bin.address,
+      fill_level: bin.fill_level,
+      latitude: bin.latitude,
+      longitude: bin.longitude,
+      waste_type: bin.waste_type,
+      status: bin.status,
+      timestamp,
+      message,
+      type: 'WORKER_CAPACITY_ALERT',
+      read_status: 0
+    };
+
+    await execute(`
+      INSERT INTO outbox_events (event_type, aggregate_type, aggregate_id, payload)
+      VALUES ('worker_alert', 'waste_bin', ?, ?)
+    `, [bin.id, JSON.stringify(alertPayload)]);
+
+    return alertPayload;
+  });
+
+  if (!payload) return null;
 
   emitToRole('WORKER', 'worker_alert', payload);
   return payload;

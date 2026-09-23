@@ -4,7 +4,7 @@ import { authenticateToken, requireRole } from '../middleware/authMiddleware.js'
 
 const router = express.Router();
 
-router.get('/', authenticateToken, requireRole('ADMIN'), getBins);
+router.get('/', authenticateToken, requireRole('ADMIN', 'WORKER', 'CITIZEN'), getBins);
 router.get('/code/:binCode', getBinByCode);
 router.get('/:id', authenticateToken, requireRole('ADMIN', 'WORKER'), getBinById);
 router.post('/', authenticateToken, requireRole('ADMIN'), createBin);

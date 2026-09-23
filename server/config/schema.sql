@@ -72,12 +72,24 @@ CREATE TABLE IF NOT EXISTS notifications (
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS outbox_events (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  event_type TEXT NOT NULL,
+  aggregate_type TEXT NOT NULL,
+  aggregate_id INTEGER NOT NULL,
+  payload TEXT NOT NULL,
+  attempts INTEGER NOT NULL DEFAULT 0,
+  published_at DATETIME,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS vehicles (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   vehicle_id TEXT NOT NULL UNIQUE,
   name TEXT NOT NULL,
   plate TEXT NOT NULL,
   driver TEXT,
+  driver_user_id INTEGER,
   phone TEXT,
   latitude REAL NOT NULL,
   longitude REAL NOT NULL,
@@ -86,4 +98,5 @@ CREATE TABLE IF NOT EXISTS vehicles (
   fuel_battery INTEGER DEFAULT 100 CHECK(fuel_battery BETWEEN 0 AND 100),
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   last_updated DATETIME DEFAULT CURRENT_TIMESTAMP
+  ,FOREIGN KEY (driver_user_id) REFERENCES users(id) ON DELETE SET NULL
 );

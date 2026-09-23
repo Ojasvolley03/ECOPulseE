@@ -96,7 +96,12 @@ export async function getComplaints(req, res) {
     `;
     const params = [];
 
-    if (user_id) {
+    if (req.user.role === 'CITIZEN') {
+      sql += ' AND c.user_id = ?';
+      params.push(req.user.id);
+    }
+
+    if (user_id && req.user.role !== 'CITIZEN') {
       sql += ' AND c.user_id = ?';
       params.push(user_id);
     }
