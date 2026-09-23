@@ -10,7 +10,8 @@ export const SocketProvider = ({ children }) => {
   const [liveAlerts, setLiveAlerts] = useState([]);
 
   useEffect(() => {
-    const socketUrl = window.location.hostname === 'localhost' ? 'http://localhost:5000' : window.location.origin;
+    const isLocalDevelopment = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+    const socketUrl = isLocalDevelopment ? `${window.location.protocol}//${window.location.hostname}:5000` : window.location.origin;
     const newSocket = io(socketUrl, {
       transports: ['websocket', 'polling'],
       reconnectionAttempts: 10,

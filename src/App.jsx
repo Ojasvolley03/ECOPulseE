@@ -6,6 +6,7 @@ import { SocketProvider } from './context/SocketContext';
 import Navbar from './components/common/Navbar';
 import Sidebar from './components/common/Sidebar';
 import SensorSimulatorModal from './components/simulator/SensorSimulatorModal';
+import LaunchScreen from './components/common/LaunchScreen';
 
 import RegisterPage from './pages/RegisterPage';
 import AdminDashboard from './pages/AdminDashboard';
@@ -139,17 +140,23 @@ function MainLayout() {
 }
 
 export default function App() {
+  const [showLaunchScreen, setShowLaunchScreen] = useState(true);
+
   return (
     <AuthProvider>
       <SocketProvider>
         <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/admin-department" element={<AdminDepartmentPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/bin/:binCode" element={<PublicBinPage />} />
-            <Route path="/*" element={<MainLayout />} />
-          </Routes>
+          {showLaunchScreen ? (
+            <LaunchScreen onOpen={() => setShowLaunchScreen(false)} />
+          ) : (
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/admin-department" element={<AdminDepartmentPage />} />
+              <Route path="/register" element={<RegisterPage />} />
+              <Route path="/bin/:binCode" element={<PublicBinPage />} />
+              <Route path="/*" element={<MainLayout />} />
+            </Routes>
+          )}
         </BrowserRouter>
       </SocketProvider>
     </AuthProvider>

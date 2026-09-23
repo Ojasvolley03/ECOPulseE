@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowUpRight, HardHat, Leaf, Recycle, ShieldCheck, Truck } from 'lucide-react';
+import { ArrowUpRight, HardHat, Leaf, ShieldCheck, Trash2, Truck } from 'lucide-react';
 
 const departments = [
   {
@@ -54,10 +54,10 @@ export default function HomePage() {
         <header className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-300 text-[#071412] shadow-[0_0_30px_rgba(110,231,183,0.25)]">
-              <Recycle className="h-6 w-6" strokeWidth={2.5} />
+              <Trash2 className="h-6 w-6" strokeWidth={2.5} />
             </div>
             <div>
-              <p className="text-lg font-black tracking-tight text-white">Eco Plus</p>
+              <p className="text-lg font-black tracking-tight text-white">EcoPulse</p>
               <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-emerald-200/60">Smart waste network</p>
             </div>
           </div>
@@ -69,7 +69,7 @@ export default function HomePage() {
 
         <section className="flex flex-1 flex-col justify-center py-16 sm:py-20">
           <div className="max-w-2xl animate-[fade-in-up_700ms_ease-out_both]">
-            <p className="mb-4 text-xs font-bold uppercase tracking-[0.3em] text-emerald-300/80">Welcome to Eco Plus</p>
+            <p className="mb-4 text-xs font-bold uppercase tracking-[0.3em] text-emerald-300/80">Welcome to EcoPulse</p>
             <h1 className="max-w-xl text-4xl font-black leading-[1.05] tracking-tight text-white sm:text-6xl">
               One network. <span className="text-emerald-300">Every action</span> matters.
             </h1>

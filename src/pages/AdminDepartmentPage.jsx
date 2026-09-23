@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, BarChart3, Boxes, MapPinned, Recycle, ShieldCheck, Truck } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BarChart3, Boxes, MapPinned, ShieldCheck, Trash2, Truck } from 'lucide-react';
 
 const adminAreas = [
   { label: 'Operations dashboard', detail: 'Live city-wide collection overview', icon: BarChart3 },
@@ -14,12 +14,12 @@ export default function AdminDepartmentPage() {
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_12%,rgba(45,212,191,0.13),transparent_32%),radial-gradient(circle_at_85%_85%,rgba(16,185,129,0.08),transparent_30%)]" />
       <div className="relative mx-auto flex min-h-screen w-full max-w-5xl flex-col px-5 py-8 sm:px-8 lg:px-12">
         <header className="flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-3" aria-label="Back to Eco Plus front page">
+          <Link to="/" className="flex items-center gap-3" aria-label="Back to EcoPulse front page">
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-300 text-[#071412] shadow-[0_0_30px_rgba(110,231,183,0.25)]">
-              <Recycle className="h-6 w-6" strokeWidth={2.5} />
+              <Trash2 className="h-6 w-6" strokeWidth={2.5} />
             </div>
             <div>
-              <p className="text-lg font-black tracking-tight text-white">Eco Plus</p>
+              <p className="text-lg font-black tracking-tight text-white">EcoPulse</p>
               <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-emerald-200/60">Admin department</p>
             </div>
           </Link>
@@ -57,7 +57,7 @@ export default function AdminDepartmentPage() {
           </Link>
         </section>
 
-        <footer className="border-t border-white/10 pt-5 text-[11px] font-medium text-slate-500">Eco Plus operations control center</footer>
+        <footer className="border-t border-white/10 pt-5 text-[11px] font-medium text-slate-500">EcoPulse operations control center</footer>
       </div>
     </main>
   );
