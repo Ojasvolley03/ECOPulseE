@@ -5,8 +5,9 @@ export async function getNotifications(req, res) {
     const userId = req.user ? req.user.id : null;
 
     const sql = `
-      SELECT * FROM notifications 
-      WHERE user_id IS NULL OR user_id = ? 
+      SELECT * FROM notifications
+      WHERE type = 'WORKER_CAPACITY_ALERT'
+        AND (user_id IS NULL OR user_id = ?)
       ORDER BY created_at DESC 
       LIMIT 50
     `;

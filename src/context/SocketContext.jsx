@@ -7,7 +7,6 @@ const SocketContext = createContext();
 export const SocketProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
   const [connected, setConnected] = useState(false);
-  const [liveAlerts, setLiveAlerts] = useState([]);
 
   useEffect(() => {
     const isLocalDevelopment = ['localhost', '127.0.0.1'].includes(window.location.hostname);
@@ -30,21 +29,6 @@ export const SocketProvider = ({ children }) => {
       setConnected(false);
     });
 
-    newSocket.on('critical_alert', (data) => {
-      console.warn('🚨 LIVE CRITICAL ALERT RECEIVED:', data);
-      setLiveAlerts((prev) => [
-        { id: Date.now(), title: 'CRITICAL BIN ALERT', message: data.message, timestamp: new Date(), type: 'CRITICAL' },
-        ...prev,
-      ]);
-    });
-
-    newSocket.on('worker_alert', (data) => {
-      setLiveAlerts((prev) => [
-        { id: Date.now(), title: 'WORKER ALERT', message: data.message, timestamp: new Date(), type: 'WORKER' },
-        ...prev,
-      ]);
-    });
-
     setSocket(newSocket);
 
     return () => {
@@ -52,12 +36,8 @@ export const SocketProvider = ({ children }) => {
     };
   }, []);
 
-  const dismissAlert = (id) => {
-    setLiveAlerts((prev) => prev.filter((alert) => alert.id !== id));
-  };
-
   return (
-    <SocketContext.Provider value={{ socket, connected, liveAlerts, dismissAlert }}>
+    <SocketContext.Provider value={{ socket, connected }}>
       {children}
     </SocketContext.Provider>
   );

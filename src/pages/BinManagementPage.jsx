@@ -203,8 +203,8 @@ export default function BinManagementPage({ onOpenSimulator }) {
                   <td className="px-6 py-4 font-bold text-slate-100">
                     <div className="flex items-center space-x-2">
                       <span>{bin.fill_level}%</span>
-                      {bin.fill_level >= 75 && (
-                        <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" title="75%+ Capacity Alert Triggered" />
+                      {bin.fill_level > 90 && (
+                        <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" title="90%+ Worker Alert Triggered" />
                       )}
                     </div>
                   </td>

@@ -82,7 +82,7 @@ export default function Sidebar() {
           <span>Smart Route Alert</span>
         </div>
         <p className="text-[11px] leading-relaxed text-slate-500">
-          Automated collection alerts trigger when any dustbin reaches <strong>75%+ capacity</strong>.
+          Worker notifications trigger automatically when any dustbin exceeds <strong>90% capacity</strong>.
         </p>
       </div>
     </aside>

@@ -1,6 +1,7 @@
 import { query, queryOne, execute } from '../config/db.js';
 import { calculateBinStatus, processBinReading } from '../services/binLogicService.js';
 import { getSocketIO } from '../services/socketService.js';
+import { evaluateWorkerAlert } from '../services/workerAlertService.js';
 
 export async function getBins(req, res) {
   try {
@@ -112,6 +113,8 @@ export async function createBin(req, res) {
       INSERT INTO sensor_readings (bin_id, fill_level, temperature, battery_level)
       VALUES (?, ?, 25.0, 100.0)
     `, [result.lastID, fill]);
+
+    await evaluateWorkerAlert(result.lastID);
 
     const io = getSocketIO();
     if (io) {

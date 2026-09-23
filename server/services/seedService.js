@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { query, queryOne, execute, db } from '../config/db.js';
+import { reconcileWorkerAlerts } from './workerAlertService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -29,6 +30,12 @@ export async function initDatabaseAndSeed() {
     }
     if (!complaintFieldNames.has('citizen_phone')) {
       await execute('ALTER TABLE complaints ADD COLUMN citizen_phone TEXT');
+    }
+
+    const binColumns = await query('PRAGMA table_info(waste_bins)');
+    const binFieldNames = new Set((binColumns || []).map(col => col.name));
+    if (!binFieldNames.has('alert_active')) {
+      await execute('ALTER TABLE waste_bins ADD COLUMN alert_active INTEGER NOT NULL DEFAULT 0');
     }
 
     const legacyAdmin = await queryOne("SELECT id, password_hash FROM users WHERE email = 'admin@ecopulse.com' AND role = 'ADMIN'");
@@ -63,6 +70,8 @@ export async function initDatabaseAndSeed() {
     }
 
     console.log('Database verification complete.');
+    await reconcileWorkerAlerts();
+    console.log('Worker dustbin alert monitoring is active.');
   } catch (err) {
     console.error('Error initializing database:', err);
   }

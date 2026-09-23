@@ -18,7 +18,8 @@ import {
   ArrowRight,
   Flame,
   BatteryCharging,
-  Gauge
+  Gauge,
+  Bell
 } from 'lucide-react';
 
 export default function WorkerDashboard() {
@@ -30,12 +31,13 @@ export default function WorkerDashboard() {
   const [activeStepIndex, setActiveStepIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [isSimulatingDriving, setIsSimulatingDriving] = useState(false);
-  const [liveAlerts, setLiveAlerts] = useState([]);
+  const [notifications, setNotifications] = useState([]);
 
   const { socket } = useSocket();
 
   useEffect(() => {
     fetchAllData();
+    fetchNotifications();
   }, []);
 
   useEffect(() => {
@@ -44,26 +46,10 @@ export default function WorkerDashboard() {
     const handleTaskChange = () => fetchAllData();
     const handleBinChange = (updatedBin) => {
       fetchBinsAndRoute();
-      if (updatedBin && updatedBin.fill_level >= 75) {
-        setLiveAlerts(prev => {
-          const exists = prev.some(a => a.bin_id === updatedBin.id);
-          if (exists) {
-            return prev.map(a => a.bin_id === updatedBin.id ? { ...a, fill_level: updatedBin.fill_level } : a);
-          }
-          return [{
-            id: `alert-${Date.now()}-${updatedBin.id}`,
-            bin_id: updatedBin.id,
-            bin_code: updatedBin.bin_code,
-            address: updatedBin.address,
-            fill_level: updatedBin.fill_level,
-            timestamp: new Date().toISOString()
-          }, ...prev];
-        });
-      }
     };
 
     const handleWorkerAlert = (alertData) => {
-      setLiveAlerts(prev => [alertData, ...prev.filter(a => a.bin_code !== alertData.bin_code)]);
+      setNotifications(prev => [alertData, ...prev.filter(notification => notification.id !== alertData.id)]);
       fetchAllData();
     };
 
@@ -118,16 +104,6 @@ export default function WorkerDashboard() {
       if (tasksRes.success) setTasks(tasksRes.data);
       if (binsRes.success) {
         setBins(binsRes.data);
-        // Extract initial 75%+ alerts
-        const highBins = binsRes.data.filter(b => b.fill_level >= 75);
-        setLiveAlerts(highBins.map(b => ({
-          id: `alert-${b.id}`,
-          bin_id: b.id,
-          bin_code: b.bin_code,
-          address: b.address,
-          fill_level: b.fill_level,
-          timestamp: b.last_updated
-        })));
       }
       if (vehRes.success && vehRes.data.length > 0) {
         setVehicles(vehRes.data);
@@ -145,6 +121,26 @@ export default function WorkerDashboard() {
       console.error('Error fetching worker dashboard data:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchNotifications = async () => {
+    try {
+      const res = await api.getNotifications();
+      if (res.success) setNotifications(res.data);
+    } catch (err) {
+      console.error('Error fetching worker notifications:', err);
+    }
+  };
+
+  const markNotificationRead = async (id) => {
+    try {
+      await api.markNotificationRead(id);
+      setNotifications(prev => prev.map(notification => (
+        notification.id === id ? { ...notification, read_status: 1 } : notification
+      )));
+    } catch (err) {
+      console.error('Error marking worker notification read:', err);
     }
   };
 
@@ -212,7 +208,8 @@ export default function WorkerDashboard() {
 
   const activeTasks = tasks.filter(t => t.status !== 'COMPLETED');
   const completedTasks = tasks.filter(t => t.status === 'COMPLETED');
-  const critical75Bins = bins.filter(b => b.fill_level >= 75);
+  const criticalBins = bins.filter(b => b.fill_level > 90);
+  const unreadNotificationCount = notifications.filter(notification => !notification.read_status).length;
 
   return (
     <div className="space-y-6 pb-12">
@@ -233,7 +230,7 @@ export default function WorkerDashboard() {
             <span>Worker & Fleet Route Command</span>
           </h1>
           <p className="text-xs text-slate-300 mt-1">
-            Real-time 75%+ overflow notifications, live truck GPS tracking, and AI shortest route calculation.
+            Automatic 90%+ dustbin collection alerts, live truck GPS tracking, and AI shortest route calculation.
           </p>
         </div>
 
@@ -248,14 +245,46 @@ export default function WorkerDashboard() {
         </div>
       </div>
 
-      {/* FEATURE 1: 75%+ Capacity Real-Time Alert Broadcast Banner */}
-      {critical75Bins.length > 0 && (
+      <section className="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden" aria-labelledby="worker-notifications-heading">
+        <div className="flex items-center justify-between gap-3 border-b border-slate-800 px-5 py-4">
+          <div className="flex items-center gap-2">
+            <Bell className="h-5 w-5 text-amber-400" />
+            <h2 id="worker-notifications-heading" className="text-sm font-extrabold text-slate-100">Worker Notifications</h2>
+            {unreadNotificationCount > 0 && (
+              <span className="rounded-full bg-rose-500 px-2 py-0.5 text-[10px] font-black text-white">{unreadNotificationCount} new</span>
+            )}
+          </div>
+          <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">Automatic monitoring</span>
+        </div>
+        <div className="max-h-80 divide-y divide-slate-800/80 overflow-y-auto">
+          {notifications.length === 0 ? (
+            <p className="p-5 text-center text-xs text-slate-500">No worker notifications.</p>
+          ) : notifications.map(notification => (
+            <button
+              key={notification.id}
+              type="button"
+              onClick={() => markNotificationRead(notification.id)}
+              className={`flex w-full items-start gap-3 p-4 text-left transition hover:bg-slate-800/60 ${notification.read_status ? 'opacity-60' : 'bg-rose-500/5'}`}
+            >
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-rose-400" />
+              <span className="min-w-0 flex-1">
+                <span className="block text-xs font-bold text-slate-200">{notification.title}</span>
+                <span className="mt-1 block text-xs leading-5 text-slate-400">{notification.message}</span>
+                <span className="mt-2 block text-[10px] text-slate-500">{new Date(notification.created_at || notification.timestamp).toLocaleString()}</span>
+              </span>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {/* Automatic >90% Capacity Alert Banner */}
+      {criticalBins.length > 0 && (
         <div className="bg-gradient-to-r from-rose-950/80 to-slate-900 border border-rose-500/40 rounded-2xl p-5 shadow-xl space-y-3 animate-fade-in">
           <div className="flex items-center justify-between border-b border-rose-500/20 pb-2">
             <div className="flex items-center space-x-2">
               <AlertTriangle className="w-5 h-5 text-rose-400 animate-bounce" />
               <h3 className="font-extrabold text-sm text-rose-200 tracking-wide uppercase">
-                🚨 Automatic 75%+ Capacity Notification Alert ({critical75Bins.length} Bins Triggered)
+                🚨 Automatic 90%+ Capacity Alert ({criticalBins.length} Bins Triggered)
               </h3>
             </div>
             <span className="text-[10px] text-rose-300 font-mono bg-rose-500/20 px-2 py-0.5 rounded-full border border-rose-500/30">
@@ -264,7 +293,7 @@ export default function WorkerDashboard() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {critical75Bins.map((b) => (
+            {criticalBins.map((b) => (
               <div
                 key={b.id}
                 className="bg-slate-950/90 border border-rose-500/30 rounded-xl p-3.5 space-y-2 relative overflow-hidden"
